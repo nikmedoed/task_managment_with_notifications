@@ -32,7 +32,8 @@ class Comment(BaseModel):
 
     task: Mapped['Task'] = relationship('Task', back_populates='comments')
     user: Mapped['User'] = relationship('User', back_populates='comments')
-    documents: Mapped[List['Document']] = relationship('Document', secondary='task_document_comment_links', back_populates='comments', overlaps="tasks,documents")
+    documents: Mapped[List['Document']] = relationship('Document', secondary='task_document_comment_links',
+                                                       back_populates='comments', overlaps="tasks,documents")
 
 
 task_document_comment_links = Table(

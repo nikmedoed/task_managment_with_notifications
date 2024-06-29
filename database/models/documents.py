@@ -20,6 +20,8 @@ class Document(BaseModel):
     author_id: int = Column(Integer, ForeignKey('users.id'), nullable=False)
 
     author: 'User' = relationship('User', back_populates='documents')
-    tasks: List['Task'] = relationship('Task', secondary='task_document_comment_links', back_populates='documents', overlaps="comments")
-    comments: List['Comment'] = relationship('Comment', secondary='task_document_comment_links', back_populates='documents', overlaps="tasks")
+    tasks: List['Task'] = relationship('Task', secondary='task_document_comment_links', back_populates='documents',
+                                       overlaps="comments")
+    comments: List['Comment'] = relationship('Comment', secondary='task_document_comment_links',
+                                             back_populates='documents', overlaps="tasks")
     power_of_attorneys: List['PowerOfAttorney'] = relationship('PowerOfAttorney', back_populates='document')

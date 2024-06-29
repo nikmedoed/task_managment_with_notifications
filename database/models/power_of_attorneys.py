@@ -12,7 +12,8 @@ if TYPE_CHECKING:
 class PowerOfAttorney(BaseModel):
     __tablename__ = 'power_of_attorneys'
 
-    user_id: Mapped[int] = Column(Integer, ForeignKey('users.id'), nullable=False)
+    issuer_id: Mapped[int] = Column(Integer, ForeignKey('users.id'), nullable=False)
+    receiver_id: Mapped[int] = Column(Integer, ForeignKey('users.id'), nullable=False)
     document_id: Mapped[int] = Column(Integer, ForeignKey('documents.id'), nullable=False)
     organization_id: Mapped[int] = Column(Integer, ForeignKey('organizations.id'), nullable=False)
 
@@ -20,6 +21,9 @@ class PowerOfAttorney(BaseModel):
     issue_date: Mapped[Date] = Column(Date, nullable=False)
     expiration_date: Mapped[Date] = Column(Date, nullable=False)
 
-    user: Mapped['User'] = relationship('User', back_populates='power_of_attorneys')
+    issuer: Mapped['User'] = relationship('User', foreign_keys='PowerOfAttorney.issuer_id',
+                                          back_populates='issued_powers_of_attorney')
+    receiver: Mapped['User'] = relationship('User', foreign_keys='PowerOfAttorney.receiver_id',
+                                            back_populates='received_powers_of_attorney')
     document: Mapped['Document'] = relationship('Document', back_populates='power_of_attorneys')
     organization: Mapped['Organization'] = relationship('Organization', back_populates='power_of_attorneys')

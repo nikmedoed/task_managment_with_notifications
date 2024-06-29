@@ -24,10 +24,11 @@ class Task(BaseModel):
     supplier_id: int = Column(Integer, ForeignKey('users.id'), nullable=False)
     supervisor_id: int = Column(Integer, ForeignKey('users.id'), nullable=False)
     executor_id: int = Column(Integer, ForeignKey('users.id'), nullable=True)
-    initial_date: DateTime = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    actual_date: DateTime = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
+    initial_plan_date: DateTime = Column(DateTime(timezone=True), nullable=False)
+    actual_plan_date: DateTime = Column(DateTime(timezone=True), nullable=False)
+    last_notification_date: DateTime = Column(DateTime(timezone=True), nullable=True)
     description: str = Column(Text, nullable=True)
-    revision_count: int = Column(Integer, default=0, nullable=False)
+    rework_count: int = Column(Integer, default=0, nullable=False)
     reschedule_count: int = Column(Integer, default=0, nullable=False)
     notification_count: int = Column(Integer, default=0, nullable=False)
 
@@ -38,5 +39,11 @@ class Task(BaseModel):
     supervisor: 'User' = relationship('User', foreign_keys='Task.supervisor_id', back_populates='tasks_as_supervisor')
     executor: 'User' = relationship('User', foreign_keys='Task.executor_id', back_populates='tasks_as_executor')
     comments: List['Comment'] = relationship('Comment', back_populates='task', order_by='Comment.id')
-    documents: List['Document'] = relationship('Document', secondary='task_document_comment_links', back_populates='tasks', overlaps="comments,documents")
+    documents: List['Document'] = relationship('Document', secondary='task_document_comment_links',
+                                               back_populates='tasks', overlaps="comments,documents")
     notifications: List['TaskNotification'] = relationship('TaskNotification', back_populates='task')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.actual_plan_date:
+            self.actual_plan_date = self.initial_plan_date

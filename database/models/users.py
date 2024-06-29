@@ -25,9 +25,23 @@ class User(BaseModel):
     active: bool = Column(Boolean, nullable=False, default=True)
     admin: bool = Column(Boolean, nullable=False, default=False)
 
-    tasks_as_supplier: List['Task'] = relationship('Task', foreign_keys='Task.supplier_id', back_populates='supplier', order_by='Task.id')
-    tasks_as_supervisor: List['Task'] = relationship('Task', foreign_keys='Task.supervisor_id', back_populates='supervisor', order_by='Task.id')
-    tasks_as_executor: List['Task'] = relationship('Task', foreign_keys='Task.executor_id', back_populates='executor', order_by='Task.id')
-    power_of_attorneys: List['PowerOfAttorney'] = relationship('PowerOfAttorney', back_populates='user', order_by='PowerOfAttorney.id', overlaps="user")
+    tasks_as_supplier: List['Task'] = relationship('Task', foreign_keys='Task.supplier_id', back_populates='supplier',
+                                                   order_by='Task.id')
+    tasks_as_supervisor: List['Task'] = relationship('Task', foreign_keys='Task.supervisor_id',
+                                                     back_populates='supervisor', order_by='Task.id')
+    tasks_as_executor: List['Task'] = relationship('Task', foreign_keys='Task.executor_id', back_populates='executor',
+                                                   order_by='Task.id')
+
+    issued_powers_of_attorney: List['PowerOfAttorney'] = relationship('PowerOfAttorney',
+                                                                      foreign_keys='PowerOfAttorney.issuer_id',
+                                                                      back_populates='issuer',
+                                                                      order_by='PowerOfAttorney.id',
+                                                                      overlaps="issued_powers_of_attorney")
+    received_powers_of_attorney: List['PowerOfAttorney'] = relationship('PowerOfAttorney',
+                                                                        foreign_keys='PowerOfAttorney.receiver_id',
+                                                                        back_populates='receiver',
+                                                                        order_by='PowerOfAttorney.id',
+                                                                        overlaps="received_powers_of_attorney")
+
     comments: List['Comment'] = relationship('Comment', back_populates='user', order_by='Comment.id')
     documents: List['Document'] = relationship('Document', back_populates='author', order_by='Document.id')

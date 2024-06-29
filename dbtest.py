@@ -10,9 +10,8 @@ from database.models.organizations import Organization
 from database.models.objects import Object
 from database.models.statuses import Status
 from database.models.task_types import TaskType
-
-from shared.app_config import app_config
 from database import db_manager, async_dbsession
+
 
 async def async_main():
     await async_clean()
@@ -67,6 +66,8 @@ async def async_main():
                 supplier=user1,
                 supervisor=user1,
                 executor=user1,
+                initial_plan_date="2024-01-01T00:00:00",
+                actual_plan_date="2024-01-01T00:00:00",
                 description="This is a test task"
             )
             session.add(task1)
@@ -83,15 +84,14 @@ async def async_main():
                 user=user1,
                 type=CommentType.comment,
                 content="This is a test comment",
-                metadata={"key": "value"}
+                extra_data={"key": "value"}
             )
             session.add(comment1)
 
             notification1 = TaskNotification(
                 task=task1,
                 user=user1,
-                telegram_message_id=123456,
-                notification_type="status_update"
+                telegram_message_id=123456
             )
             session.add(notification1)
 
@@ -119,6 +119,8 @@ async def async_main():
                 supplier=user2,
                 supervisor=user1,
                 executor=user2,
+                initial_plan_date="2024-01-01T00:00:00",
+                actual_plan_date="2024-01-01T00:00:00",
                 description="This is another test task"
             )
             session.add(task2)
@@ -135,20 +137,20 @@ async def async_main():
                 user=user2,
                 type=CommentType.comment,
                 content="This is another test comment",
-                metadata={"key": "value"}
+                extra_data={"key": "value"}
             )
             session.add(comment2)
 
             notification2 = TaskNotification(
                 task=task2,
                 user=user2,
-                telegram_message_id=654321,
-                notification_type="status_update"
+                telegram_message_id=654321
             )
             session.add(notification2)
 
         await session.commit()
         print("Тестовые данные добавлены успешно.")
+
 
 async def async_clean():
     async with db_manager.engine.begin() as conn:
@@ -156,14 +158,18 @@ async def async_clean():
 
     print("База данных успешно очищена.")
 
+
 def main():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
-        loop.run_until_complete(async_main())
+        # loop.run_until_complete(async_main())
+        loop.run_until_complete(async_clean())
     finally:
         loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.run_until_complete(db_manager.dispose())  # Manually dispose of the engine
         loop.close()
+
 
 if __name__ == "__main__":
     main()
