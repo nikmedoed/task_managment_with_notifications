@@ -1,1 +1,4 @@
 For example https://bootstrapmade.com/nice-admin-bootstrap-admin-html-template/
+css/
+vendor/
+js/
