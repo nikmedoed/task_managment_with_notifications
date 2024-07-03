@@ -1,8 +1,12 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import load_dotenv, find_dotenv
 from typing import Optional
+import os
 
-DOTENV_PATH = find_dotenv("../.env")
+DOTENV_PATH = find_dotenv()
+if not DOTENV_PATH:
+    DOTENV_PATH = os.path.join(os.path.dirname(__file__), '../.env')
+
 load_dotenv(DOTENV_PATH)
 
 

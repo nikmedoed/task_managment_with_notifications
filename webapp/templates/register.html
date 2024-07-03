@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main>
+    <div class="container">
+
+        <section class="section register min-vh-100 d-flex flex-column align-items-center justify-content-center py-4">
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-lg-6 col-md-8 d-flex flex-column align-items-center justify-content-center">
+                        <div class="d-flex justify-content-center py-4">
+                            <a href="/" class="logo d-flex align-items-center w-auto">
+                                <img src="/static/img/logo.png" alt="">
+                                <span class="d-none d-lg-block">Прайм контроль</span>
+                            </a>
+                        </div>
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="pt-4 pb-2">
+                                    <h5 class="card-title text-center pb-0 fs-4">Регистрация</h5>
+                                    <p class="text-center small">Эти данные будут использованы для верифкации и связи с вами</p>
+                                </div>
+                                <form method="post" action="/auth/register" class="row g-3">
+                                    <input type="hidden" name="id" value="{{ user_id }}">
+                                    <div class="col-12">
+                                        <label for="first_name" class="form-label">Имя</label>
+                                        <input type="text" id="first_name" name="first_name" class="form-control"
+                                               value="{{ first_name }}" required>
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="last_name" class="form-label">Фамилия</label>
+                                        <input type="text" id="last_name" name="last_name" class="form-control"
+                                               value="{{ last_name }}" required>
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="middle_name" class="form-label">Отчество</label>
+                                        <input type="text" id="middle_name" name="middle_name" class="form-control">
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="username" class="form-label">Никнейм (необязательно)</label>
+                                        <input type="text" id="username" name="username" class="form-control"
+                                               value="{{ username }}">
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="email" class="form-label">Email (необязательно)</label>
+                                        <input type="email" id="email" name="email" class="form-control">
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="phone_number" class="form-label">Номер телефона
+                                            (необязательно)</label>
+                                        <input type="tel" id="phone_number" name="phone_number" class="form-control"
+                                               pattern="^\+?[0-9\s\-\(\)]+$" title="Введите корректный номер телефона">
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="position" class="form-label">Должность</label>
+                                        <input type="text" id="position" name="position" class="form-control" required>
+                                    </div>
+                                    <div class="col-12">
+                                        <button class="btn btn-primary w-100" type="submit">Зарегистрироваться</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </div>
+    </section>
+    </div>
+</main>
+{% endblock %}
