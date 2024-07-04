@@ -2,7 +2,8 @@ from fastapi import APIRouter, Request, Depends
 from fastapi.responses import PlainTextResponse, RedirectResponse
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from webapp.deps import get_db, redis, COOKIE_NAME, BASE_DIR, templates
+from webapp.deps import get_db, redis, BASE_DIR, templates
+from webapp.utils.RedisStore import COOKIE_AUTH
 from shared.app_config import app_config
 
 router = APIRouter()

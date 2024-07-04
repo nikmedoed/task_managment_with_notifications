@@ -4,7 +4,8 @@ from fastapi.responses import PlainTextResponse, RedirectResponse
 from joserfc import jwt
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from webapp.deps import get_db, redis, COOKIE_NAME
+from webapp.deps import get_db, redis
+from webapp.utils.RedisStore import COOKIE_AUTH
 from shared.app_config import app_config
 from database.models import User
 
