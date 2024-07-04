@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<main>
+    <div class="container">
+        <section class="section error min-vh-100 d-flex flex-column align-items-center justify-content-center">
+            <h1>{{ status_code }}</h1>
+            <h2>{{ detail }}</h2>
+            {% if extra_detail %}
+                <pre>{{ extra_detail }}</pre>
+            {% endif %}
+            <a class="btn" href="/">На главную</a>
+            <img src="assets/img/not-found.svg" class="img-fluid py-5" alt="{{ title }}">
+        </section>
+    </div>
+</main>
+
+{% endblock %}

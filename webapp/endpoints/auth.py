@@ -1,23 +1,21 @@
 import hmac
 from typing import Annotated
 
-from fastapi import APIRouter, Query, HTTPException, Depends, Request, Form
-from fastapi.responses import PlainTextResponse, RedirectResponse, HTMLResponse
-from joserfc import jwt
+from fastapi import APIRouter, Query, Depends, Request
+from fastapi.responses import PlainTextResponse, RedirectResponse
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from webapp.deps import get_db, redis, templates, REDIS_KEY_USER_REGISTER
-from webapp.utils.RedisStore import COOKIE_AUTH, REDIS_TTL
+from webapp.deps import get_db, redis, templates
+from webapp.utils.RedisStore import COOKIE_AUTH
 from shared.app_config import app_config
 from database.models import User
-from joserfc.errors import JoseError
 import hashlib
-import json
 from uuid import uuid4
+
 router = APIRouter()
 
 
-@router.get('/auth')
+@router.get('/')
 @router.get('/login')
 async def login(request: Request, next_path=""):
     template_context = {
@@ -55,8 +53,6 @@ async def telegram_callback(
     result = await db.execute(select(User).filter(User.telegram_id == user_id))
     user = result.scalars().first()
     if user:
-        if not user.active or not user.verificated:
-            return PlainTextResponse('User is not active or not verified', status_code=403)
         response = RedirectResponse(next_url)
     else:
         session_data = {
@@ -67,7 +63,7 @@ async def telegram_callback(
             'auth_date': auth_date,
             'next_url': next_url
         }
-        await redis.set(f"{REDIS_KEY_USER_REGISTER}:{user_id}", json.dumps(session_data), ex=REDIS_TTL)
+        await redis.set_register_data(user_id, session_data)
         response = RedirectResponse('/register')
     device_id = str(uuid4())
     await redis.set_token(user_id, device_id, response)
@@ -76,15 +72,9 @@ async def telegram_callback(
 
 @router.get('/logout')
 async def logout(request: Request):
-    token = request.cookies.get(COOKIE_AUTH)
-    if token:
-        try:
-            token_parts = jwt.decode(token, app_config.telegram.jwt_secret_key)
-            user_id = token_parts.claims['k']
-            await redis.delete(f"auth-token:{user_id}")
-        except JoseError:
-            pass
-
+    user_id, device_id = await redis.check_token(request)
+    if user_id:
+        redis.delete_token(user_id, device_id)
     response = RedirectResponse('/')
     response.delete_cookie(key=COOKIE_AUTH)
     return response

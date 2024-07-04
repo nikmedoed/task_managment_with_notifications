@@ -2,12 +2,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Form
 from fastapi.responses import RedirectResponse
-from joserfc import jwt
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from webapp.deps import get_db, redis, templates, REDIS_KEY_USER_REGISTER
-from webapp.utils.RedisStore import COOKIE_AUTH, REDIS_TTL
-from shared.app_config import app_config
+from webapp.deps import get_db, redis, templates
+from webapp.utils.RedisStore import REDIS_KEY_USER_REGISTER
 from database.models import User
 import json
 
@@ -85,12 +83,6 @@ async def register_user(
 
     await db.commit()
     await db.refresh(user)
-
-    token = jwt.encode({'alg': 'HS256'}, {'k': user_id, 'd': device_id}, app_config.telegram.jwt_secret_key)
-    await redis.set(f"{COOKIE_AUTH}:{user_id}:{device_id}", token, ex=REDIS_TTL)
-    await redis.delete(f"{REDIS_KEY_USER_REGISTER}:{user_id}")
-
     response = RedirectResponse(next_url)
-    response.set_cookie(key=COOKIE_AUTH, value=token, max_age=REDIS_TTL)
-    response.set_cookie(key='device_id', value=device_id, max_age=REDIS_TTL)
+    await redis.set_token(user_id, device_id, response)
     return response
