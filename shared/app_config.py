@@ -41,8 +41,9 @@ class RedisConfig(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix='REDIS_', env_file=DOTENV_PATH, extra='ignore')
 
-    def create_connector(self):
-        import redis.asyncio as redis
+    def create_connector(self, redis=None):
+        if not redis:
+            import redis.asyncio as redis
 
         auth_part = f":{self.password}@" if self.password else ""
         url = f"redis://{auth_part}{self.host}:{self.port}/{self.db}"
