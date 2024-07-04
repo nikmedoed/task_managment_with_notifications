@@ -19,7 +19,7 @@ class User(BaseModel):
     email: str = Column(String(100), nullable=True, unique=True)
     phone_number: str = Column(String(15), nullable=True)
     telegram_nick: str = Column(String(50), nullable=True)
-    telegram_id: int = Column(Integer, nullable=False, unique=True)
+    telegram_id: int = Column(Integer, nullable=False, unique=True, index=True)
     position: str = Column(String(100), nullable=False)
     verificated: bool = Column(Boolean, nullable=False, default=False)
     active: bool = Column(Boolean, nullable=False, default=True)
