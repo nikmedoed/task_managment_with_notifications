@@ -22,7 +22,6 @@ def get_title(path: str) -> str:
             return title
     return SYSTEM_NAME
 
-
 class CustomTemplateResponse(Response):
     media_type = "text/html"
 

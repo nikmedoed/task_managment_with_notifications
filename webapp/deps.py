@@ -6,8 +6,7 @@ from shared.app_config import app_config
 from .titles import CustomJinja2Templates
 from .utils.RedisStore import RedisTokenManager
 
-redis = RedisTokenManager(app_config.redis.create_connector(RedisTokenManager),
-                          jwt_secret_key=app_config.telegram.jwt_secret_key)
+redis = RedisTokenManager(**app_config.redis.dict(), jwt_secret_key=app_config.telegram.jwt_secret_key)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 

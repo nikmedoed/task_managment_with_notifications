@@ -32,7 +32,7 @@ def create_app() -> FastAPI:
 
     app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
-    def restricted(path):
+    def restricted(path) -> bool:
         if path == '/':
             return True
 
