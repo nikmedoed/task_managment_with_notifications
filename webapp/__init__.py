@@ -4,7 +4,7 @@ import importlib
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
-from webapp.endpoints import auth, register
+from webapp.endpoints import auth, register, tasks
 from webapp.deps import get_db, redis, BASE_DIR, templates
 from database.models import User
 from sqlalchemy.future import select
@@ -32,6 +32,10 @@ def create_app() -> FastAPI:
     @app.get("/index.html")
     async def redirect_index():
         return RedirectResponse(url='/')
+
+    @app.get("/")
+    async def root(request: Request):
+        return await tasks.tasks(request)
 
     app.include_router(auth.router, prefix="/auth", tags=["auth"])
     app.include_router(register.router, prefix="/register", tags=["register"])

@@ -9,8 +9,7 @@ from shared.app_config import app_config
 router = APIRouter()
 
 
-@router.get("/")
-@router.get("/tasks")
-async def root(request: Request):
+@router.get("")
+async def tasks(request: Request):
     template_context = {'request': request, 'app_config': app_config}
     return templates.TemplateResponse('tasks.html', template_context)

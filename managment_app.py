@@ -16,6 +16,8 @@ app = create_app()
 #     pass
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
+    import uvicorn
+
+    uvicorn.run(app, host="127.0.0.1", port=80)
+    # loop = asyncio.get_event_loop()
     # loop.create_task(start_bot())
-    loop.run_until_complete(app())
