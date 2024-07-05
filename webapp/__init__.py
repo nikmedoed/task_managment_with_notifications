@@ -4,12 +4,13 @@ import importlib
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
-from webapp.endpoints import auth
+from webapp.endpoints import auth, register
 from webapp.deps import get_db, redis, BASE_DIR, templates
 from database.models import User
 from sqlalchemy.future import select
-from webapp.endpoints.auth import login
 from webapp.errors import error_handlers, render_unactive, render_unverificated
+from webapp.titles import SYSTEM_NAME
+from database import async_dbsession
 
 secured_modules = [
     'tasks',
@@ -19,13 +20,21 @@ secured_modules = [
 
 
 def create_app() -> FastAPI:
-    app = FastAPI()
+    app = FastAPI(
+        title=SYSTEM_NAME,
+        contact={
+            "name": "Muromtsev Nikita",
+            "url": "https://t.me/nikmedoed",
+            "email": "nikmedoed@gmail.com",
+        }
+    )
 
     @app.get("/index.html")
     async def redirect_index():
         return RedirectResponse(url='/')
 
     app.include_router(auth.router, prefix="/auth", tags=["auth"])
+    app.include_router(register.router, prefix="/register", tags=["register"])
     for module_name in secured_modules:
         imported_module = importlib.import_module(f'webapp.endpoints.{module_name}')
         app.include_router(imported_module.router, prefix=f'/{module_name}', tags=[module_name])
@@ -48,13 +57,13 @@ def create_app() -> FastAPI:
             url_safe_path = urllib.parse.quote(request.url.path, safe='')
             user_id, device_id = await redis.check_token(request)
             if not user_id:
-                return await login(request, next_path=url_safe_path)
+                return await auth.login(request, next_path=url_safe_path)
 
-            async with get_db() as session:
+            async with async_dbsession() as session:
                 result = await session.execute(select(User).filter(User.telegram_id == user_id))
                 user = result.scalars().first()
             if not user:
-                return await login(request, next_path=url_safe_path)
+                return await auth.login(request, next_path=url_safe_path)
 
             if not user.active:
                 return render_unactive(request)
