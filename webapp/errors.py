@@ -55,19 +55,21 @@ ERROR_MESSAGES = {
 def render_unactive(request: Request):
     return error_render(
         request,
-        "Удален",
-        "Вас удалили. Обратитесь к администратору системы для восстановления аккаунта.",
         status.HTTP_403_FORBIDDEN,
-        "Доступ запрещен")
+        "Вас удалили",
+        title="Доступ запрещен",
+        extra_detail="Обратитесь к администратору системы для восстановления аккаунта"
+    )
 
 
 def render_unverificated(request: Request):
     return error_render(
         request,
-        "На верификации",
-        "Ваш аккаунт на верификации. Обратитесь к администратору для ускорения верификации.",
         status.HTTP_403_FORBIDDEN,
-        "Доступ запрещен")
+        "Аккаунт на верификации",
+        title="Верификация",
+        extra_detail="Обратитесь к администратору системы для ускорения верификации"
+    )
 
 
 def error_handlers(app: FastAPI):
@@ -77,7 +79,11 @@ def error_handlers(app: FastAPI):
             "title": "Неописанная ошибка",
             "detailed": "Неописанная ошибка, обратитесь к разработчику, если повторяется"
         })
-        return error_render(request, exc.status_code, error_info["detailed"], exc.detail, error_info["title"])
+        return error_render(request,
+                            exc.status_code,
+                            error_info["detailed"],
+                            extra_detail=str(exc.detail),
+                            title=error_info["title"])
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
@@ -85,14 +91,19 @@ def error_handlers(app: FastAPI):
             "title": "Ошибка валидации данных",
             "detailed": "Ошибка валидации данных, обратитесь к разработчику, если регулярно повторяется"
         })
-        return error_render(request, status.HTTP_422_UNPROCESSABLE_ENTITY, error_info["detailed"], exc.errors(),
-                            error_info["title"])
+        return error_render(request,
+                            status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            error_info["detailed"],
+                            extra_detail=str(exc.errors()),
+                            title=error_info["title"])
 
 
-def error_render(request, code, detail, extra_detail=None, status_code=None, title=None):
+def error_render(request: Request, code: int | str, detail: str, extra_detail: str = None, status_code: int = None,
+                 title: str = None):
     return templates.TemplateResponse("error.html", {
         "request": request,
         "status_code": code,
         "detail": detail,
-        "extra_detail": extra_detail
-    }, status_code=status_code or code, headers={"title": title or "Ошибка"})
+        "extra_detail": extra_detail,
+        "title": title or "Ошибка"
+    }, status_code=status_code or code)

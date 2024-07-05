@@ -1,16 +1,16 @@
-import hmac
 from typing import Annotated
-
-from fastapi import APIRouter, Query, Depends, Request
-from fastapi.responses import PlainTextResponse, RedirectResponse
-from sqlalchemy.future import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from webapp.deps import get_db, redis, templates
 from webapp.utils.RedisStore import COOKIE_AUTH
 from shared.app_config import app_config
 from database.models import User
-import hashlib
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
+from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from uuid import uuid4
+import hashlib
+import hmac
 
 router = APIRouter()
 
@@ -26,8 +26,6 @@ async def login(request: Request, next_path=""):
     login_wall = templates.TemplateResponse('login.html', template_context)
     return login_wall
 
-
-# todo общую функцию проверки активности пользователя с мидлварем
 
 @router.get('/telegram-callback')
 async def telegram_callback(
@@ -48,7 +46,8 @@ async def telegram_callback(
     computed_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
     is_correct = hmac.compare_digest(computed_hash, query_hash)
     if not is_correct:
-        return PlainTextResponse('Authorization failed. Please try again', status_code=401)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Авторизация через телеграм завершилась ошибкой. Попробуйте снова.")
 
     result = await db.execute(select(User).filter(User.telegram_id == user_id))
     user = result.scalars().first()
