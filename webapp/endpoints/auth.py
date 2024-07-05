@@ -15,7 +15,7 @@ from uuid import uuid4
 router = APIRouter()
 
 
-@router.get('/')
+@router.get('')
 @router.get('/login')
 async def login(request: Request, next_path=""):
     template_context = {
