@@ -12,7 +12,7 @@ import json
 router = APIRouter()
 
 
-@router.get('/')
+@router.get('')
 async def get_register(
         request: Request
 ):
@@ -39,7 +39,7 @@ async def get_register(
     return templates.TemplateResponse('register.html', template_context)
 
 
-@router.post('/')
+@router.post('')
 async def register_user(
         request: Request,
         user_id: Annotated[int, Form()],
@@ -53,7 +53,9 @@ async def register_user(
         next_url: Annotated[str, Form()] = '/',
         db: AsyncSession = Depends(get_db)
 ):
+
     t_user_id, device_id = await redis.check_token(request)
+    print("user reg post", t_user_id, device_id)
     if not t_user_id or t_user_id != user_id:
         return RedirectResponse('/auth')
 
