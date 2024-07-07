@@ -21,7 +21,7 @@ modules = {
     'tasks': {'name': 'Задачи', 'icon': 'card-checklist', 'secured': True},
     'users': {'name': 'Пользователи', 'icon': 'people', 'secured': True},
     # 'documents': {'name': 'Документы', 'icon': 'file-earmark-text', 'secured': True},
-    'references': {'name': 'Справочники', 'icon': 'file-earmark-text', 'secured': True},
+    'references': {'name': 'Справочники', 'icon': 'journal-bookmark', 'secured': True},
 }
 
 secured_modules = {k: v for k, v in modules.items() if v.get('secured')}
