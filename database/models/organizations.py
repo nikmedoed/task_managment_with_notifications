@@ -1,5 +1,5 @@
 from ._base import BaseModel
-from sqlalchemy import Column, String, Text
+from sqlalchemy import Column, String, Text, Boolean
 from sqlalchemy.orm import relationship
 from typing import List, TYPE_CHECKING
 
@@ -14,6 +14,7 @@ class Organization(BaseModel):
     name: str = Column(String(150), nullable=False)
     description: str = Column(Text, nullable=True)
     address: str = Column(String(200), nullable=True)
+    active: bool = Column(Boolean, nullable=False, default=True)
 
     objects: List['Object'] = relationship('Object', back_populates='organization', order_by='Object.id')
     power_of_attorneys: List['PowerOfAttorney'] = relationship('PowerOfAttorney', back_populates='organization',

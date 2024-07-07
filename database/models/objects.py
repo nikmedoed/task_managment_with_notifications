@@ -1,5 +1,5 @@
 from ._base import BaseModel
-from sqlalchemy import Column, Integer, String, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, Boolean
 
 from sqlalchemy.orm import relationship
 from typing import List, TYPE_CHECKING
@@ -18,6 +18,7 @@ class Object(BaseModel):
     address: str = Column(String(200), nullable=True)
     area_sq_meters: float = Column(Float, nullable=True)
     num_apartments: int = Column(Integer, nullable=True)
+    active: bool = Column(Boolean, nullable=False, default=True)
 
     organization: 'Organization' = relationship('Organization', back_populates='objects')
     tasks: List['Task'] = relationship('Task', back_populates='object', order_by='Task.id')
