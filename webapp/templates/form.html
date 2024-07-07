@@ -1,0 +1,23 @@
+{% extends "blank.html" %}
+
+{% block page %}
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{{ title }}</h5>
+                <form method="post" action="{{ url }}">
+                    {% for field in fields %}
+                    <div class="mb-3">
+                        <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
+                        <input type="text" class="form-control" id="{{ field.name }}" name="{{ field.name }}"
+                               value="{{ getattr(item, field.name, '') }}">
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

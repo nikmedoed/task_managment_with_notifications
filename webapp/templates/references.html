@@ -1,0 +1,47 @@
+{% extends "blank.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12">
+
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            {% for tab_key, tab_value in fields.items() %}
+            <li class="nav-item" role="presentation">
+                <a class="nav-link {% if loop.first %}active{% endif %}"
+                   id="{{ tab_key }}-tab"
+                   data-bs-toggle="tab"
+                   href="#{{ tab_key }}"
+                   role="tab"
+                   aria-controls="{{ tab_key }}"
+                   aria-selected="true">{{ tab_value.name }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="card">
+            <div class="card-body">
+                <div class="tab-content" id="myTabContent">
+
+                    {% for tab_key, tab_value in fields.items() %}
+                    <div class="tab-pane fade {% if loop.first %}show active{% endif %}"
+                         id="{{ tab_key }}"
+                         role="tabpanel"
+                         aria-labelledby="{{ tab_key }}-tab">
+                        {% if request.state.user.admin %}
+                        <div class="card-title d-flex justify-content-end mb-2">
+                            <a href="/references/{{ tab_key }}/create" class="btn btn-primary mb-2">
+                                <i class="bi bi-plus-lg"></i> Добавить {{tab_value.name1}}</a>
+                        </div>
+                        {% endif %}
+                        {% set table_items = data[tab_key] %}
+                        {% set table_fields = tab_value.fields %}
+                        {% set table_model_name = tab_key %}
+                        {% include 'generic_table.html' %}
+                    </div>
+                    {% endfor %}
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

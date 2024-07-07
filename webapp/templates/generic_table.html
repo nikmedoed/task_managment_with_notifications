@@ -1,0 +1,27 @@
+<table class="table table-striped table-hover">
+    <thead>
+    <tr>
+        {% for table_field in table_fields %}
+        <th scope="col">{{ table_field.label }}</th>
+        {% endfor %}
+        {% if request.state.user.admin %}
+        <th scope="col">Действия</th>
+        {% endif %}
+    </tr>
+    </thead>
+    <tbody>
+    {% for table_item in table_items %}
+    <tr>
+        {% for table_field in table_fields %}
+        <td>{{ getattr(table_item, table_field.name) }}</td>
+        {% endfor %}
+        {% if request.state.user.admin %}
+        <td>
+            <a href="/references/{{ table_model_name }}/edit/{{ table_item.id }}" class="btn btn-secondary btn-sm"><i
+                    class="bi bi-pencil-square"></i> Редактировать</a>
+        </td>
+        {% endif %}
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
