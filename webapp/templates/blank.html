@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
 
-    <title>{{ title ~ " – " ~ SYSTEM_NAME if title else get_title(request.url.path) }}</title>
+    <title>{{ (title or request.state.title) | format_title }}{{ SYSTEM_NAME }}</title>
     <meta content="" name="description">
     <meta content="" name="keywords">
 
@@ -31,11 +31,11 @@
 
     <div class="d-flex align-items-center justify-content-between">
         <a href="/" class="logo d-flex align-items-center">
-            <img src="static/img/logo.png" alt="">
+            <img src="/static/img/logo.png" alt="">
             <span class="d-none d-lg-block">Прайм контроль</span>
         </a>
         <i class="bi bi-list toggle-sidebar-btn"></i>
-    </div><!-- End Logo -->
+    </div>
 
     <!-- Поиск скрыт -->
     <!-- <div class="search-bar">
@@ -111,21 +111,21 @@
             <li class="nav-item dropdown pe-3">
 
                 <a class="nav-link nav-profile d-flex align-items-center pe-0" href="#" data-bs-toggle="dropdown">
-                    <img src="static/img/profile-img.jpg" alt="Profile" class="rounded-circle">
-                    <span class="d-none d-md-block dropdown-toggle ps-2">{{ user.name }}</span>
-                </a><!-- End Profile Image Icon -->
+                    <!--                    <img src="..." alt="Profile" class="rounded-circle">-->
+                    <span class="d-none d-md-block dropdown-toggle ps-2">{{ request.state.user.first_name }} {{ request.state.user.last_name }}</span>
+                </a>
 
                 <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile">
                     <li class="dropdown-header">
-                        <h6>{{ user.name }}</h6>
-                        <span>{{ user.position }}</span>
+                        <h6>{{ request.state.user.first_name }} {{ request.state.user.last_name }}</h6>
+                        <span>{{ request.state.user.position }}</span>
                     </li>
                     <li>
                         <hr class="dropdown-divider">
                     </li>
 
                     <li>
-                        <a class="dropdown-item d-flex align-items-center" href="users-profile.html">
+                        <a class="dropdown-item d-flex align-items-center" href="/users/profile">
                             <i class="bi bi-person"></i>
                             <span>Мой профиль</span>
                         </a>
@@ -135,17 +135,7 @@
                     </li>
 
                     <li>
-                        <a class="dropdown-item d-flex align-items-center" href="users-profile.html">
-                            <i class="bi bi-gear"></i>
-                            <span>Настройки аккаунта</span>
-                        </a>
-                    </li>
-                    <li>
-                        <hr class="dropdown-divider">
-                    </li>
-
-                    <li>
-                        <a class="dropdown-item d-flex align-items-center" href="#">
+                        <a class="dropdown-item d-flex align-items-center" href="/auth/logout">
                             <i class="bi bi-box-arrow-right"></i>
                             <span>Выход</span>
                         </a>
@@ -161,11 +151,11 @@
 <aside id="sidebar" class="sidebar">
 
     <ul class="sidebar-nav" id="sidebar-nav">
-        {% for route in secured_modules %}
+        {% for route, data in secured_modules.items() %}
         <li class="nav-item">
             <a class="nav-link collapsed" href="/{{ route }}">
-                <i class="bi bi-{{ route }}"></i>
-                <span>{{ route | capitalize }}</span>
+                <i class="bi bi-{{ data.icon }}"></i>
+                <span>{{ data.name }}</span>
             </a>
         </li>
         {% endfor %}
@@ -176,10 +166,9 @@
 <main id="main" class="main">
 
     <div class="pagetitle">
-        <h1>{{ page_title }}</h1>
+        <h1>{{ pagetitle or title or request.state.title }}</h1>
         <nav>
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="/">Главная</a></li>
                 {% for crumb in breadcrumbs %}
                 <li class="breadcrumb-item{% if crumb.active %} active{% endif %}">{{ crumb.name }}</li>
                 {% endfor %}
@@ -196,7 +185,7 @@
 
 <footer id="footer" class="footer">
     <div class="copyright">
-        &copy; <strong><span>Прайм контроль</span></strong> by <a href="https://t.me/nikmedoed">nikmedoed</a>
+        <strong><span>Прайм контроль</span></strong> by <a href="https://t.me/nikmedoed">nikmedoed</a>
     </div>
 </footer>
 

@@ -9,14 +9,27 @@ from webapp.deps import get_db, redis, BASE_DIR, templates
 from database.models import User
 from sqlalchemy.future import select
 from webapp.errors import error_handlers, render_unactive, render_unverificated
-from webapp.titles import SYSTEM_NAME
 from database import async_dbsession
+import inspect
+import webapp.filters
 
-secured_modules = [
-    'tasks',
-    'users',
-    'documents'
-]
+SYSTEM_NAME = "Прайм контроль"
+
+modules = {
+    'auth': {'name': 'Авторизация'},
+    'register': {'name': 'Регистрация'},
+    'tasks': {'name': 'Задачи', 'icon': 'card-checklist', 'secured': True},
+    'users': {'name': 'Пользователи', 'icon': 'people', 'secured': True},
+    # 'documents': {'name': 'Документы', 'icon': 'file-earmark-text', 'secured': True},
+    'references': {'name': 'Справочники', 'icon': 'file-earmark-text', 'secured': True},
+}
+
+secured_modules = {k: v for k, v in modules.items() if v.get('secured')}
+
+templates.env.globals['secured_modules'] = secured_modules
+templates.env.globals['SYSTEM_NAME'] = SYSTEM_NAME
+for name, func in inspect.getmembers(webapp.filters, inspect.isfunction):
+    templates.env.filters[name] = func
 
 
 def create_app() -> FastAPI:
@@ -37,9 +50,7 @@ def create_app() -> FastAPI:
     async def root(request: Request):
         return await tasks.tasks(request)
 
-    app.include_router(auth.router, prefix="/auth", tags=["auth"])
-    app.include_router(register.router, prefix="/register", tags=["register"])
-    for module_name in secured_modules:
+    for module_name in modules:
         imported_module = importlib.import_module(f'webapp.endpoints.{module_name}')
         app.include_router(imported_module.router, prefix=f'/{module_name}', tags=[module_name])
 
@@ -74,6 +85,7 @@ def create_app() -> FastAPI:
             if not user.verificated:
                 return render_unverificated(request)
             request.state.user = user
+        request.state.title = modules.get(request.url.path.strip("/").split("/", 1)[0], {}).get('name', "")
 
         return await call_next(request)
 

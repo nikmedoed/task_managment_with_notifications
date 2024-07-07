@@ -11,5 +11,6 @@ router = APIRouter()
 
 @router.get("")
 async def tasks(request: Request):
+    user = request.state.user
     template_context = {'request': request, 'app_config': app_config}
     return templates.TemplateResponse('tasks.html', template_context)
