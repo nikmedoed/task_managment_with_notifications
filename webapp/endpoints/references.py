@@ -1,6 +1,6 @@
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from webapp.deps import get_db, templates
+from webapp.deps import get_db, templates, generate_static_template
 from shared.app_config import app_config
 from webapp.schemas import *
 from sqlalchemy.orm import Session
@@ -42,6 +42,14 @@ FIELDS = {
     },
 }
 
+
+def generate_static():
+    static = [("references_tabs.html",  {'fields': FIELDS}, "references_tabs.html")]
+
+    for key, value in FIELDS.items():
+        static.append(("references_thead.html", {'table_fields': value['fields']}, f"references_thead_{key}.html"))
+
+    return static
 
 def get_admin_user(request: Request):
     user = request.state.user

@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from webapp.endpoints import auth, register, tasks
-from webapp.deps import get_db, redis, BASE_DIR, templates
+from webapp.deps import get_db, redis, BASE_DIR, templates, generate_static_template
 from database.models import User
 from sqlalchemy.future import select
 from webapp.errors import error_handlers, render_unactive, render_unverificated
@@ -53,6 +53,10 @@ def create_app() -> FastAPI:
     for module_name in modules:
         imported_module = importlib.import_module(f'webapp.endpoints.{module_name}')
         app.include_router(imported_module.router, prefix=f'/{module_name}', tags=[module_name])
+        generate_static = getattr(imported_module, 'generate_static', None)
+        if generate_static:
+            for args in generate_static():
+                generate_static_template(*args)
 
     app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 

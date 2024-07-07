@@ -1,0 +1,13 @@
+<ul class="nav nav-tabs" id="myTab" role="tablist">
+    {% for tab_key, tab_value in fields.items() %}
+    <li class="nav-item" role="presentation">
+        <a class="nav-link {% if loop.first %}active{% endif %}"
+           id="{{ tab_key }}-tab"
+           data-bs-toggle="tab"
+           href="#{{ tab_key }}"
+           role="tab"
+           aria-controls="{{ tab_key }}"
+           aria-selected="true">{{ tab_value.name }}</a>
+    </li>
+    {% endfor %}
+</ul>

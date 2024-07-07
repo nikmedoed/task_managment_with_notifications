@@ -163,3 +163,4 @@ _redisData
 webapp/static/css/*
 webapp/static/vendor/*
 webapp/static/js/*
+/webapp/templates/static
