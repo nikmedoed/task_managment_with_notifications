@@ -63,11 +63,9 @@ def create_app() -> FastAPI:
     def restricted(path) -> bool:
         if path == '/':
             return True
-
         for module_name in secured_modules:
             if path.startswith(f'/{module_name}'):
                 return True
-
         return False
 
     @app.middleware('http')

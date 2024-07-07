@@ -1,10 +1,8 @@
 import os
 from starlette.requests import Request
-from starlette.testclient import TestClient
 from database import async_dbsession
 from sqlalchemy.ext.asyncio import AsyncSession
 from shared.app_config import app_config
-from fastapi import FastAPI
 from .utils.RedisStore import RedisTokenManager
 
 from fastapi.templating import Jinja2Templates

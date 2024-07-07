@@ -39,6 +39,11 @@
                                     <a href="/references/{{ tab_key }}/edit/{{ table_item.id }}"
                                        class="btn btn-secondary btn-sm">
                                         <i class="bi bi-pencil-square"></i> Редактировать</a>
+                                    <a href="/references/{{ tab_key }}/{{ 'delete' if table_item.active else 'restore' }}/{{ table_item.id }}?next=/references#{{ tab_key }}"
+                                       class="btn btn-{{ 'danger' if table_item.active else 'success' }} btn-sm">
+                                        <i class="bi bi-{{ 'trash' if table_item.active else 'arrow-clockwise' }}"></i>
+                                        {{ 'Удалить' if table_item.active else 'Восстановить' }}
+                                    </a>
                                 </td>
                                 {% endif %}
                             </tr>

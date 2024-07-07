@@ -6,12 +6,13 @@ from webapp.schemas import *
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Request, Depends, HTTPException, status, Form
 from database.models import User
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 router = APIRouter()
 
 FIELDS = {
     'objects': {
+        'model': Object,
         'name': "Объекты",
         'name1': "Объект",
         'fields': [
@@ -24,6 +25,7 @@ FIELDS = {
         ],
     },
     'organizations': {
+        'model': Organization,
         'name': "Организации",
         'name1': "Организацию",
         'fields': [
@@ -33,6 +35,7 @@ FIELDS = {
         ],
     },
     'task_types': {
+        'model': TaskType,
         'name': "Типы задач",
         'name1': "Тип задач",
         'fields': [
@@ -44,12 +47,13 @@ FIELDS = {
 
 
 def generate_static():
-    static = [("references_tabs.html",  {'fields': FIELDS}, "references_tabs.html")]
+    static = [("references_tabs.html", {'fields': FIELDS}, "references_tabs.html")]
 
     for key, value in FIELDS.items():
         static.append(("references_thead.html", {'table_fields': value['fields']}, f"references_thead_{key}.html"))
 
     return static
+
 
 def get_admin_user(request: Request):
     user = request.state.user
@@ -118,7 +122,7 @@ async def create_or_update_object(object: ObjectCreate, db: AsyncSession = Depen
 @router.get("/{model}/create", response_class=HTMLResponse)
 async def create_page(request: Request, model: str, db: AsyncSession = Depends(get_db),
                       user: User = Depends(get_admin_user)):
-    return templates.TemplateResponse("form.html", {
+    return templates.TemplateResponse("references_form.html", {
         'request': request,
         'title': f'Создать {FIELDS[model]["name1"]}',
         'url': f'/references/{model}/',
@@ -130,14 +134,33 @@ async def create_page(request: Request, model: str, db: AsyncSession = Depends(g
 @router.get("/{model}/edit/{item_id}", response_class=HTMLResponse)
 async def edit_page(request: Request, model: str, item_id: int, db: AsyncSession = Depends(get_db),
                     user: User = Depends(get_admin_user)):
-    model_class = {'objects': Object, 'organizations': Organization, 'task_types': TaskType}[model]
+    model_class = FIELDS[model]['model']
     item = await db.get(model_class, item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Запись не найдена")
-    return templates.TemplateResponse("form.html", {
+    return templates.TemplateResponse("references_form.html", {
         'request': request,
         'title': f'Редактировать {FIELDS[model]["name"]}',
         'url': f'/references/{model}/{item_id}',
         'fields': FIELDS[model]['fields'],
         'item': item,
     })
+
+
+@router.post("/{model}/{action}/{item_id}", response_class=HTMLResponse)
+@router.get("/{model}/{action}/{item_id}", response_class=HTMLResponse)
+async def toggle_active_status(request: Request, model: str, action: str, item_id: int,
+                               db: AsyncSession = Depends(get_db)):
+    model_class = FIELDS[model]['model']
+    item = await db.get(model_class, item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Запись не найдена")
+    if action == "delete":
+        item.active = False
+    elif action == "restore":
+        item.active = True
+    else:
+        raise HTTPException(status_code=400, detail="Неверное действие")
+    await db.commit()
+    next_url = request.query_params.get("next", f"/references#{model}")
+    return RedirectResponse(url=next_url, status_code=303)

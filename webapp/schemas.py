@@ -3,6 +3,7 @@ from sqlalchemy.inspection import inspect
 from database.models import TaskType, Object, Organization
 from sqlalchemy import Column
 
+
 def sqlalchemy_to_pydantic_create(schema):
     mapper = inspect(schema)
     fields = {column.key: (column.type.python_type, ...) for column in mapper.attrs if isinstance(column, Column)}
