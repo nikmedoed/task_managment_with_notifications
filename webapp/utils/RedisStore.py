@@ -22,14 +22,13 @@ class RedisTokenManager(redis.Redis):
                            self.jwt_secret_key)
         await self.set(f"{COOKIE_AUTH}:{key}:{user_id}:{device_id}", token, ex=REDIS_TTL)
         if response:
-            response.set_cookie(key=COOKIE_AUTH, value=token, max_age=REDIS_TTL)
+            response.set_cookie(key=COOKIE_AUTH, value=token, max_age=REDIS_TTL, secure=True, httponly=True)
         return token
 
     # стоит продумать польностью логику, чтобы использовать tgid локально при регистрации,
     #  но тогда усложняется мидлварь и лишние проверки, а ценности пока мало
-    async def check_token(self, token: [str | Request]):
-        if isinstance(token, Request):
-            token = token.cookies.get(COOKIE_AUTH)
+    async def check_token(self, request: Request):
+        token = request.cookies.get(COOKIE_AUTH)
         if not token:
             return None, None
         try:
@@ -37,11 +36,17 @@ class RedisTokenManager(redis.Redis):
             key = 't' if token_parts.claims.get('t') else "k"
             user_id = token_parts.claims[key]
             device_id = token_parts.claims['d']
+            # ip_address = token_parts['ip']
+            # user_agent = token_parts['ua']
         except JoseError:
             return None, None
         except Exception as e:
             print("Error: check_token exception:", e)
             return None, None
+        # client_ip = request.headers.get('X-Forwarded-For', request.client.host)
+        # if client_ip != ip_address or request.headers.get('user-agent') != user_agent:
+        #     return None, None, None
+
         stored_token = await self.get(f"{COOKIE_AUTH}:{key}:{user_id}:{device_id}")
         if isinstance(stored_token, bytes):
             stored_token = stored_token.decode('utf-8')

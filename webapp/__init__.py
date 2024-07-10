@@ -70,6 +70,7 @@ def create_app() -> FastAPI:
 
     @app.middleware('http')
     async def middleware(request: Request, call_next):
+        user_id, device_id = None, None
         if restricted(request.url.path):
             url_safe_path = urllib.parse.quote(request.url.path, safe='')
             user_id, device_id = await redis.check_token(request)
@@ -89,7 +90,11 @@ def create_app() -> FastAPI:
             request.state.user = user
         request.state.title = modules.get(request.url.path.strip("/").split("/", 1)[0], {}).get('name', "")
 
-        return await call_next(request)
+        response = await call_next(request)
+        if user_id and device_id:
+            await redis.set_token(user_id, device_id, response)
+
+        return response
 
     error_handlers(app)
 
