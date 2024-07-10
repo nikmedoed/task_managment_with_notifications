@@ -7,11 +7,34 @@
             <div class="card-body">
                 <h5 class="card-title">{{ title }}</h5>
                 <form method="post" action="{{ url }}">
+                    {% if errors %}
+                    <div class="alert alert-danger">
+                        <ul>
+                            {% for error in errors %}
+                            <li>{{ error.msg }} ({{ error.loc }})</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
                     {% for field in fields %}
                     <div class="mb-3">
                         <label for="{{ field.name }}" class="form-label">{{ field.label }}</label>
+                        {% if field.name == 'organization_id' %}
+                        <select class="form-control" id="{{ field.name }}" name="{{ field.name }}">
+                            <option value="">Выберите организацию</option>
+                            {% for org in data.organizations %}
+                            <option value="{{ org.id }}" {{ 'selected' if item[field.name] == org.id else '' }}>{{ org.name }}</option>
+                            {% endfor %}
+                        </select>
+                        {% elif field.name in ['area_sq_meters', 'num_apartments'] %}
+                        <input type="number" step="any" class="form-control" id="{{ field.name }}" name="{{ field.name }}"
+                               value="{{ item[field.name] if field.name in item else '' }}">
+                        {% elif field.name in ['description'] %}
+                        <textarea class="form-control" id="{{ field.name }}" name="{{ field.name }}">{{ item[field.name] if field.name in item else '' }}</textarea>
+                        {% else %}
                         <input type="text" class="form-control" id="{{ field.name }}" name="{{ field.name }}"
                                value="{{ item[field.name] if field.name in item else '' }}">
+                        {% endif %}
                     </div>
                     {% endfor %}
                     <button type="submit" class="btn btn-primary">Сохранить</button>

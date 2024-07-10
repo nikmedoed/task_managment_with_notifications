@@ -1,20 +1,21 @@
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from webapp.deps import get_db, templates, generate_static_template
+from webapp.deps import get_db, templates
 from shared.app_config import app_config
 from webapp.schemas import *
-from sqlalchemy.orm import Session
 from fastapi import APIRouter, Request, Depends, HTTPException, status, Form
 from database.models import User
 from fastapi.responses import HTMLResponse, RedirectResponse
+from pydantic import ValidationError
 
 router = APIRouter()
 
 FIELDS = {
     'objects': {
-        'model': Object,
         'name': "Объекты",
         'name1': "Объект",
+        'model': Object,
+        'pydantic_model': ObjectCreate,
         'fields': [
             {'name': 'name', 'label': 'Название'},
             {'name': 'organization_id', 'label': 'Организация'},
@@ -25,9 +26,10 @@ FIELDS = {
         ],
     },
     'organizations': {
-        'model': Organization,
         'name': "Организации",
         'name1': "Организацию",
+        'model': Organization,
+        'pydantic_model': OrganizationCreate,
         'fields': [
             {'name': 'name', 'label': 'Название'},
             {'name': 'description', 'label': 'Описание'},
@@ -35,9 +37,10 @@ FIELDS = {
         ],
     },
     'task_types': {
-        'model': TaskType,
         'name': "Типы задач",
         'name1': "Тип задач",
+        'model': TaskType,
+        'pydantic_model': TaskTypeCreate,
         'fields': [
             {'name': 'name', 'label': 'Название'},
             {'name': 'active', 'label': 'Активен'},
@@ -98,37 +101,67 @@ async def save_resource(db: AsyncSession, model_class, data, resource_id=None):
     return db_obj
 
 
-@router.post("/task_types/", response_model=TaskTypeCreate)
-@router.post("/task_types/{task_type_id}", response_model=TaskTypeCreate)
-async def create_or_update_task_type(task_type: TaskTypeCreate, db: AsyncSession = Depends(get_db),
-                                     user: User = Depends(get_admin_user), task_type_id: int = None):
-    return await save_resource(db, TaskType, task_type, task_type_id)
+@router.post("/{model}/", response_class=HTMLResponse)
+@router.post("/{model}/{item_id}", response_class=HTMLResponse)
+async def save_item(request: Request, model: str, item_id: int = None,
+                    db: AsyncSession = Depends(get_db)):
+    pydantic_model = FIELDS[model]['pydantic_model']
+    form_data = await request.form()
+    print("========form_data", form_data)
+    form_dict = {k: v for k, v in form_data.items()}
+    print("========form_dict", form_dict)
 
+    for key, value in form_dict.items():
+        if value.lower() == 'true':
+            form_dict[key] = True
+        elif value.lower() == 'false':
+            form_dict[key] = False
 
-@router.post("/organizations/", response_model=OrganizationCreate)
-@router.post("/organizations/{organization_id}", response_model=OrganizationCreate)
-async def create_or_update_organization(organization: OrganizationCreate, db: AsyncSession = Depends(get_db),
-                                        user: User = Depends(get_admin_user), organization_id: int = None):
-    return await save_resource(db, Organization, organization, organization_id)
+    try:
+        form = pydantic_model(**form_dict)
+    except ValidationError as e:
+        return templates.TemplateResponse("references_form.html", {
+            'request': request,
+            'title': f'Создать {FIELDS[model]["name1"]}' if item_id is None else f'Редактировать {FIELDS[model]["name"]}',
+            'url': f'/references/{model}/' if item_id is None else f'/references/{model}/{item_id}',
+            'fields': FIELDS[model]['fields'],
+            'item': form_dict,
+            'errors': e.errors()
+        })
 
+    print("========form", form.dict())
 
-@router.post("/objects/", response_model=ObjectCreate)
-@router.post("/objects/{object_id}", response_model=ObjectCreate)
-async def create_or_update_object(object: ObjectCreate, db: AsyncSession = Depends(get_db),
-                                  user: User = Depends(get_admin_user), object_id: int = None):
-    return await save_resource(db, Object, object, object_id)
+    model_class = FIELDS[model]['model']
+    if item_id:
+        item = await db.get(model_class, item_id)
+        if not item:
+            raise HTTPException(status_code=404, detail="Запись не найдена")
+        for k, v in form.dict().items():
+            setattr(item, k, v)
+    else:
+        item = model_class(**form.dict())
+        db.add(item)
+
+    await db.commit()
+    await db.refresh(item)
+    return RedirectResponse(url=f'/references#tab_{model}', status_code=303)
 
 
 @router.get("/{model}/create", response_class=HTMLResponse)
-async def create_page(request: Request, model: str, db: AsyncSession = Depends(get_db),
-                      user: User = Depends(get_admin_user)):
-    return templates.TemplateResponse("references_form.html", {
+async def create_page(request: Request, model: str, db: AsyncSession = Depends(get_db)):
+    context = {
         'request': request,
         'title': f'Создать {FIELDS[model]["name1"]}',
         'url': f'/references/{model}/',
         'fields': FIELDS[model]['fields'],
         'item': {},
-    })
+    }
+
+    if model == 'objects':
+        organizations = (await db.execute(select(Organization))).scalars().all()
+        context['data'] = {'organizations': organizations}
+
+    return templates.TemplateResponse("references_form.html", context)
 
 
 @router.get("/{model}/edit/{item_id}", response_class=HTMLResponse)
@@ -138,13 +171,20 @@ async def edit_page(request: Request, model: str, item_id: int, db: AsyncSession
     item = await db.get(model_class, item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Запись не найдена")
-    return templates.TemplateResponse("references_form.html", {
+
+    context = {
         'request': request,
         'title': f'Редактировать {FIELDS[model]["name"]}',
         'url': f'/references/{model}/{item_id}',
         'fields': FIELDS[model]['fields'],
         'item': item,
-    })
+    }
+
+    if model == 'objects':
+        organizations = (await db.execute(select(Organization))).scalars().all()
+        context['data'] = {'organizations': organizations}
+
+    return templates.TemplateResponse("references_form.html", context)
 
 
 @router.post("/{model}/{action}/{item_id}", response_class=HTMLResponse)

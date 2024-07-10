@@ -1,12 +1,17 @@
 from pydantic import create_model
 from sqlalchemy.inspection import inspect
+from sqlalchemy import Column, String, Integer, Float, Boolean
 from database.models import TaskType, Object, Organization
-from sqlalchemy import Column
 
 
 def sqlalchemy_to_pydantic_create(schema):
     mapper = inspect(schema)
-    fields = {column.key: (column.type.python_type, ...) for column in mapper.attrs if isinstance(column, Column)}
+    fields = {}
+    for column in mapper.attrs:
+        if isinstance(column, Column):
+            python_type = column.type.python_type
+            default_value = ... if column.nullable else None
+            fields[column.key] = (python_type, default_value)
     return create_model(f'{schema.__name__}Create', **fields)
 
 
