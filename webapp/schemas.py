@@ -1,20 +1,70 @@
-from pydantic import create_model
-from sqlalchemy.inspection import inspect
-from sqlalchemy import Column, String, Integer, Float, Boolean
-from database.models import TaskType, Object, Organization
+from typing import Optional
+
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
-def sqlalchemy_to_pydantic_create(schema):
-    mapper = inspect(schema)
-    fields = {}
-    for column in mapper.attrs:
-        if isinstance(column, Column):
-            python_type = column.type.python_type
-            default_value = ... if column.nullable else None
-            fields[column.key] = (python_type, default_value)
-    return create_model(f'{schema.__name__}Create', **fields)
+class ModelWithActive(BaseModel):
+    active: Optional[bool] = True
+
+    @field_validator('active', mode='before')
+    def parse_bool(cls, v):
+        if isinstance(v, str):
+            if v.lower() == 'true':
+                return True
+            elif v.lower() == 'false':
+                return False
+        return v
 
 
-TaskTypeCreate = sqlalchemy_to_pydantic_create(TaskType)
-OrganizationCreate = sqlalchemy_to_pydantic_create(Organization)
-ObjectCreate = sqlalchemy_to_pydantic_create(Object)
+class OrganizationCreate(ModelWithActive):
+    name: str
+    description: Optional[str] = None
+    address: Optional[str] = None
+
+
+class TaskTypeCreate(ModelWithActive):
+    name: str
+    active: Optional[bool] = True
+
+
+class ObjectCreate(ModelWithActive):
+    name: str
+    organization_id: int
+    description: Optional[str] = None
+    address: Optional[str] = None
+    area_sq_meters: Optional[float] = None
+    num_apartments: Optional[int] = None
+
+    @field_validator('area_sq_meters', 'num_apartments', mode='before')
+    def parse_number(cls, v):
+        if not v:
+            return None
+        if isinstance(v, str):
+            try:
+                return float(v) if '.' in v else int(v)
+            except ValueError:
+                raise ValueError(f'Invalid value: {v}')
+        return v
+
+
+class UserSchema(BaseModel):
+    last_name: str = Field(..., max_length=100)
+    first_name: str = Field(..., max_length=100)
+    middle_name: Optional[str] = Field(None, max_length=100)
+    email: Optional[EmailStr]
+    phone_number: Optional[str] = Field(None, max_length=15)
+    telegram_nick: Optional[str] = Field(None, max_length=50)
+    telegram_id: int
+    position: str = Field(..., max_length=100)
+    verificated: bool = False
+    active: bool = True
+    admin: bool = False
+
+    @field_validator('verificated', 'active', 'admin', mode='before')
+    def parse_bool(cls, v):
+        if isinstance(v, str):
+            if v.lower() == 'true':
+                return True
+            elif v.lower() == 'false':
+                return False
+        return v

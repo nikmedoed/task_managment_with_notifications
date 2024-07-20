@@ -1,0 +1,32 @@
+{% extends "forms/base_references.html" %}
+
+{% block references_form_fields %}
+<div class="mb-3">
+    <label for="name" class="form-label">Название</label>
+    <input type="text" class="form-control" id="name" name="name" value="{{ item.name if item.name is not none else '' }}" required>
+</div>
+<div class="mb-3">
+    <label for="organization_id" class="form-label">Организация</label>
+    <select class="form-control" id="organization_id" name="organization_id">
+        {% for org in object_list.organizations %}
+        <option value="{{ org.id }}" {{ 'selected' if item.organization_id == org.id else '' }}>{{ org.name }}</option>
+        {% endfor %}
+    </select>
+</div>
+<div class="mb-3">
+    <label for="description" class="form-label">Описание</label>
+    <textarea class="form-control" id="description" name="description">{{ item.description if item.description is not none else '' }}</textarea>
+</div>
+<div class="mb-3">
+    <label for="address" class="form-label">Адрес</label>
+    <input type="text" class="form-control" id="address" name="address" value="{{ item.address if item.address is not none else '' }}">
+</div>
+<div class="mb-3">
+    <label for="area_sq_meters" class="form-label">Площадь (кв.м)</label>
+    <input type="number" step="any" class="form-control" id="area_sq_meters" name="area_sq_meters" value="{{ item.area_sq_meters if item.area_sq_meters is not none else '' }}">
+</div>
+<div class="mb-3">
+    <label for="num_apartments" class="form-label">Кол-во квартир</label>
+    <input type="number" class="form-control" id="num_apartments" name="num_apartments" value="{{ item.num_apartments if item.num_apartments is not none else '' }}">
+</div>
+{% endblock %}

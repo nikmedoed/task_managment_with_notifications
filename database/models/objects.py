@@ -20,5 +20,5 @@ class Object(BaseModel):
     num_apartments: int = Column(Integer, nullable=True)
     active: bool = Column(Boolean, nullable=False, default=True)
 
-    organization: 'Organization' = relationship('Organization', back_populates='objects')
+    organization: 'Organization' = relationship('Organization', back_populates='objects', lazy='joined')
     tasks: List['Task'] = relationship('Task', back_populates='object', order_by='Task.id')

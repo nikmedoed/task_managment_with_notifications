@@ -1,0 +1,16 @@
+{% extends "forms/base_references.html" %}
+
+{% block references_form_fields %}
+<div class="mb-3">
+    <label for="name" class="form-label">Название</label>
+    <input type="text" class="form-control" id="name" name="name" value="{{ item.name if item.name is not none else '' }}" required>
+</div>
+<div class="mb-3">
+    <label for="description" class="form-label">Описание</label>
+    <textarea class="form-control" id="description" name="description">{{ item.description if item.description is not none else '' }}</textarea>
+</div>
+<div class="mb-3">
+    <label for="address" class="form-label">Адрес</label>
+    <input type="text" class="form-control" id="address" name="address" value="{{ item.address if item.address is not none else '' }}">
+</div>
+{% endblock %}

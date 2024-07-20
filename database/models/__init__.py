@@ -1,4 +1,4 @@
-from ._base import BaseModel, Base
+from ._base import BaseModel
 from .comments import Comment, CommentType
 from .documents import Document
 from .objects import Object

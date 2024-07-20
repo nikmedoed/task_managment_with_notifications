@@ -1,0 +1,53 @@
+{% extends "forms/base_references.html" %}
+
+{% block form_fields %}
+<div class="mb-3">
+    <label for="last_name" class="form-label">Фамилия</label>
+    <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name if user else '' }}"
+           required>
+</div>
+<div class="mb-3">
+    <label for="first_name" class="form-label">Имя</label>
+    <input type="text" class="form-control" id="first_name" name="first_name"
+           value="{{ user.first_name if user else '' }}" required>
+</div>
+<div class="mb-3">
+    <label for="middle_name" class="form-label">Отчество</label>
+    <input type="text" class="form-control" id="middle_name" name="middle_name"
+           value="{{ user.middle_name if user else '' }}">
+</div>
+<div class="mb-3">
+    <label for="email" class="form-label">Электронная почта</label>
+    <input type="email" class="form-control" id="email" name="email" value="{{ user.email if user else '' }}">
+</div>
+<div class="mb-3">
+    <label for="phone_number" class="form-label">Номер телефона</label>
+    <input type="text" class="form-control" id="phone_number" name="phone_number"
+           value="{{ user.phone_number if user else '' }}">
+</div>
+<div class="mb-3">
+    <label for="telegram_nick" class="form-label">Телеграм ник</label>
+    <input type="text" class="form-control" id="telegram_nick" name="telegram_nick"
+           value="{{ user.telegram_nick if user else '' }}">
+</div>
+<div class="mb-3">
+    <label for="position" class="form-label">Должность</label>
+    <input type="text" class="form-control" id="position" name="position" value="{{ user.position if user else '' }}"
+           required>
+</div>
+<div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" id="verificated" name="verificated" {% if user and user.verificated
+           %}checked{% endif %}>
+    <label class="form-check-label" for="verificated">Верифицирован</label>
+</div>
+<div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" id="admin" name="admin" {% if user and user.admin %}checked{% endif
+           %}>
+    <label class="form-check-label" for="admin">Администратор</label>
+</div>
+<div class="form-check mb-3">
+    <input class="form-check-input" type="checkbox" id="active" name="active" {% if user and user.active %}checked{%
+           endif %}>
+    <label class="form-check-label" for="active">Активный (не удалён)</label>
+</div>
+{% endblock %}

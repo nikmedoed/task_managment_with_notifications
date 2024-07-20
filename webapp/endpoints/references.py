@@ -1,12 +1,13 @@
-from sqlalchemy.future import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from webapp.deps import get_db, templates
-from shared.app_config import app_config
-from webapp.schemas import *
-from fastapi import APIRouter, Request, Depends, HTTPException, status, Form
-from database.models import User
+from fastapi import APIRouter, Request, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
+from database.models import Organization, Object, TaskType
+from shared.app_config import app_config
+from webapp.deps import get_db, templates
+from webapp.schemas import *
 
 router = APIRouter()
 
@@ -18,7 +19,8 @@ FIELDS = {
         'pydantic_model': ObjectCreate,
         'fields': [
             {'name': 'name', 'label': 'Название'},
-            {'name': 'organization_id', 'label': 'Организация'},
+            {'name': 'organization', 'label': 'Организация', 'subfield': 'name',
+             'link': '/references/organizations/edit/{organization_id}'},
             {'name': 'description', 'label': 'Описание'},
             {'name': 'address', 'label': 'Адрес'},
             {'name': 'area_sq_meters', 'label': 'Площадь (кв.м)'},
@@ -33,7 +35,7 @@ FIELDS = {
         'fields': [
             {'name': 'name', 'label': 'Название'},
             {'name': 'description', 'label': 'Описание'},
-            {'name': 'address', 'label': 'Адрес'},
+            {'name': 'address', 'label': 'Адрес'}
         ],
     },
     'task_types': {
@@ -43,7 +45,7 @@ FIELDS = {
         'pydantic_model': TaskTypeCreate,
         'fields': [
             {'name': 'name', 'label': 'Название'},
-            {'name': 'active', 'label': 'Активен'},
+            {'name': 'active', 'label': 'Активен'}
         ],
     },
 }
@@ -67,21 +69,15 @@ def get_admin_user(request: Request):
 
 @router.get("")
 async def references(request: Request, db: AsyncSession = Depends(get_db)):
-    objects = (await db.execute(select(Object))).scalars().all()
-    organizations = (await db.execute(select(Organization))).scalars().all()
-    task_types = (await db.execute(select(TaskType))).scalars().all()
-
-    data = {
-        'objects': objects,
-        'organizations': organizations,
-        'task_types': task_types,
-    }
+    data = {model_name: (await db.execute(select(model_info['model']))).scalars().all()
+            for model_name, model_info in FIELDS.items()}
 
     context = {
         'request': request,
         'app_config': app_config,
         'data': data,
-        'fields': FIELDS
+        'fields': FIELDS,
+        'getattr': getattr
     }
     return templates.TemplateResponse("references.html", context)
 
@@ -103,33 +99,28 @@ async def save_resource(db: AsyncSession, model_class, data, resource_id=None):
 
 @router.post("/{model}/", response_class=HTMLResponse)
 @router.post("/{model}/{item_id}", response_class=HTMLResponse)
-async def save_item(request: Request, model: str, item_id: int = None,
+async def save_item(request: Request,
+                    model: str,
+                    item_id: int = None,
                     db: AsyncSession = Depends(get_db)):
     pydantic_model = FIELDS[model]['pydantic_model']
     form_data = await request.form()
-    print("========form_data", form_data)
     form_dict = {k: v for k, v in form_data.items()}
-    print("========form_dict", form_dict)
-
-    for key, value in form_dict.items():
-        if value.lower() == 'true':
-            form_dict[key] = True
-        elif value.lower() == 'false':
-            form_dict[key] = False
-
     try:
         form = pydantic_model(**form_dict)
     except ValidationError as e:
-        return templates.TemplateResponse("references_form.html", {
+        errors = [{"loc": ".".join(str(loc) for loc in error['loc']), "msg": error['msg']} for error in e.errors()]
+        context = {
             'request': request,
             'title': f'Создать {FIELDS[model]["name1"]}' if item_id is None else f'Редактировать {FIELDS[model]["name"]}',
             'url': f'/references/{model}/' if item_id is None else f'/references/{model}/{item_id}',
-            'fields': FIELDS[model]['fields'],
             'item': form_dict,
-            'errors': e.errors()
-        })
-
-    print("========form", form.dict())
+            'errors': errors
+        }
+        if model == 'objects':
+            organizations = (await db.execute(select(Organization))).scalars().all()
+            context['object_list'] = {'organizations': organizations}
+        return templates.TemplateResponse(f"forms/{model}.html", context)
 
     model_class = FIELDS[model]['model']
     if item_id:
@@ -144,47 +135,33 @@ async def save_item(request: Request, model: str, item_id: int = None,
 
     await db.commit()
     await db.refresh(item)
-    return RedirectResponse(url=f'/references#tab_{model}', status_code=303)
+    return RedirectResponse(url=f'/references#{model}', status_code=303)
 
 
 @router.get("/{model}/create", response_class=HTMLResponse)
-async def create_page(request: Request, model: str, db: AsyncSession = Depends(get_db)):
+@router.get("/{model}/edit/{item_id}", response_class=HTMLResponse)
+async def create_page(request: Request, model: str, item_id: int = None, db: AsyncSession = Depends(get_db)):
     context = {
         'request': request,
         'title': f'Создать {FIELDS[model]["name1"]}',
         'url': f'/references/{model}/',
-        'fields': FIELDS[model]['fields'],
-        'item': {},
+        'item': {}
     }
+
+    if item_id:
+        model_class = FIELDS[model]['model']
+        item = await db.get(model_class, item_id)
+        if not item:
+            raise HTTPException(status_code=404, detail="Запись не найдена")
+        context['item'] = item.to_dict()
+        context['title'] = f'Редактировать {FIELDS[model]["name1"]}'
+        context['url'] = f'/references/{model}/{item_id}'
 
     if model == 'objects':
         organizations = (await db.execute(select(Organization))).scalars().all()
-        context['data'] = {'organizations': organizations}
+        context['object_list'] = {'organizations': organizations}
 
-    return templates.TemplateResponse("references_form.html", context)
-
-
-@router.get("/{model}/edit/{item_id}", response_class=HTMLResponse)
-async def edit_page(request: Request, model: str, item_id: int, db: AsyncSession = Depends(get_db),
-                    user: User = Depends(get_admin_user)):
-    model_class = FIELDS[model]['model']
-    item = await db.get(model_class, item_id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Запись не найдена")
-
-    context = {
-        'request': request,
-        'title': f'Редактировать {FIELDS[model]["name"]}',
-        'url': f'/references/{model}/{item_id}',
-        'fields': FIELDS[model]['fields'],
-        'item': item,
-    }
-
-    if model == 'objects':
-        organizations = (await db.execute(select(Organization))).scalars().all()
-        context['data'] = {'organizations': organizations}
-
-    return templates.TemplateResponse("references_form.html", context)
+    return templates.TemplateResponse(f"forms/{model}.html", context)
 
 
 @router.post("/{model}/{action}/{item_id}", response_class=HTMLResponse)

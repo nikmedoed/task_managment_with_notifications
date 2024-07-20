@@ -32,18 +32,37 @@
                             {% for table_item in data[tab_key] %}
                             <tr>
                                 {% for table_field in tab_value.fields %}
-                                <td>{{ getattr(table_item, table_field.name) }}</td>
+                                <td>
+                                    {% set field_value = getattr(table_item, table_field.name) %}
+                                    {% if 'subfield' in table_field %}
+                                    {% set value = getattr(field_value, table_field.subfield) if field_value else '' %}
+                                    {% else %}
+                                    {% set value = field_value %}
+                                    {% endif %}
+
+                                    {% set value = value if value is not none else '' %}
+
+                                    {% if 'link' in table_field %}
+                                    <a href="{{ table_item|link_format(table_field.link) }}">{{ value }}</a>
+                                    {% else %}
+                                    {{ value }}
+                                    {% endif %}
+                                </td>
                                 {% endfor %}
                                 {% if request.state.user.admin %}
                                 <td>
-                                    <a href="/references/{{ tab_key }}/edit/{{ table_item.id }}"
-                                       class="btn btn-secondary btn-sm">
-                                        <i class="bi bi-pencil-square"></i> Редактировать</a>
-                                    <a href="/references/{{ tab_key }}/{{ 'delete' if table_item.active else 'restore' }}/{{ table_item.id }}?next=/references#{{ tab_key }}"
-                                       class="btn btn-{{ 'danger' if table_item.active else 'success' }} btn-sm">
-                                        <i class="bi bi-{{ 'trash' if table_item.active else 'arrow-clockwise' }}"></i>
-                                        {{ 'Удалить' if table_item.active else 'Восстановить' }}
-                                    </a>
+                                    <div style="white-space: nowrap;">
+                                        <a href="/references/{{ tab_key }}/edit/{{ table_item.id }}"
+                                           class="text-decoration-none">
+                                            <i class="bi bi-pencil-square"></i> Редактировать</a>
+                                    </div>
+                                    <div style="white-space: nowrap;">
+                                        <a href="/references/{{ tab_key }}/{{ 'delete' if table_item.active else 'restore' }}/{{ table_item.id }}?next=/references#{{ tab_key }}"
+                                           class="text-decoration-none {{ 'text-danger' if table_item.active else 'text-success' }}">
+                                            <i class="bi bi-{{ 'trash' if table_item.active else 'arrow-clockwise' }}"></i>
+                                            {{ 'Удалить' if table_item.active else 'Восстановить' }}
+                                        </a>
+                                    </div>
                                 </td>
                                 {% endif %}
                             </tr>
