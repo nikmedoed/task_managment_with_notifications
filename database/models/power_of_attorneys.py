@@ -1,7 +1,9 @@
-from ._base import BaseModel
+from typing import TYPE_CHECKING, List
+
 from sqlalchemy import Column, Integer, String, ForeignKey, Date
 from sqlalchemy.orm import relationship, Mapped
-from typing import TYPE_CHECKING
+
+from ._base import BaseModel
 
 if TYPE_CHECKING:
     from .users import User
@@ -25,5 +27,5 @@ class PowerOfAttorney(BaseModel):
                                           back_populates='issued_powers_of_attorney')
     receiver: Mapped['User'] = relationship('User', foreign_keys='PowerOfAttorney.receiver_id',
                                             back_populates='received_powers_of_attorney')
-    document: Mapped['Document'] = relationship('Document', back_populates='power_of_attorneys')
+    documents: Mapped[List['Document']] = relationship('Document', back_populates='power_of_attorney')
     organization: Mapped['Organization'] = relationship('Organization', back_populates='power_of_attorneys')

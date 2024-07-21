@@ -33,8 +33,8 @@ SUPERVISOR_STATUSES = {Statuses.REVIEW}
 STATUS_TRANSITIONS = {
     Statuses.DRAFT: {Statuses.PLANNING},
     Statuses.PLANNING: {Statuses.ACCEPTED, Statuses.REJECTED},
-    Statuses.REJECTED: {Statuses.PLANNING},
-    Statuses.ACCEPTED: {Statuses.REVIEW},
+    Statuses.REJECTED: {Statuses.PLANNING, Statuses.ACCEPTED},
+    Statuses.ACCEPTED: {Statuses.REVIEW, Statuses.REJECTED},
     Statuses.REVIEW: {Statuses.DONE, Statuses.REWORK},
     Statuses.REWORK: {Statuses.REVIEW},
     Statuses.DONE: {Statuses.REWORK},

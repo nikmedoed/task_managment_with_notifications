@@ -1,6 +1,8 @@
 from typing import List, TYPE_CHECKING
 
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Enum as SQLAlchemyEnum
+from sqlalchemy import Column, Integer, ForeignKey, DateTime, Text, Enum as SQLAlchemyEnum
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import aliased
 from sqlalchemy.orm import relationship
 
 from ._base import BaseModel
@@ -21,7 +23,6 @@ if TYPE_CHECKING:
 class Task(BaseModel):
     __tablename__ = 'tasks'
 
-    name: str = Column(String(100), nullable=False)
     task_type_id: int = Column(Integer, ForeignKey('task_types.id'), nullable=False)
     status = Column(SQLAlchemyEnum(Statuses), nullable=False)
     object_id: int = Column(Integer, ForeignKey('objects.id'), nullable=False)
@@ -42,8 +43,6 @@ class Task(BaseModel):
     supervisor: 'User' = relationship('User', foreign_keys='Task.supervisor_id', back_populates='tasks_as_supervisor')
     executor: 'User' = relationship('User', foreign_keys='Task.executor_id', back_populates='tasks_as_executor')
     comments: List['Comment'] = relationship('Comment', back_populates='task', order_by='Comment.id')
-    documents: List['Document'] = relationship('Document', secondary='task_document_comment_links',
-                                               back_populates='tasks', overlaps="comments,documents")
     notifications: List['TaskNotification'] = relationship('TaskNotification', back_populates='task')
 
     def __init__(self, *args, **kwargs):
@@ -72,3 +71,22 @@ class Task(BaseModel):
             self.status = new_status
         else:
             raise ValueError(f"Недопустим перевод из статуса '{self.status}' в '{new_status}'")
+
+    @hybrid_property
+    def documents(self):
+        documents = []
+        for comment in self.comments:
+            documents.extend(comment.documents)
+        return documents
+
+    @documents.expression
+    def documents(cls):
+        DocumentAlias = aliased(Document)
+        return (
+            select([DocumentAlias])
+            .select_from(Comment)
+            .join(DocumentAlias, Comment.id == DocumentAlias.comment_id)
+            .where(Comment.task_id == cls.id)
+            .correlate(cls)
+            .as_scalar()
+        )

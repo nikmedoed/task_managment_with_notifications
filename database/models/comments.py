@@ -1,8 +1,10 @@
-from ._base import BaseModel
-from sqlalchemy import Table, Column, Integer, Text, ForeignKey, JSON, DateTime, String, Enum
-from sqlalchemy.orm import relationship, Mapped
-from typing import List, TYPE_CHECKING
 import enum
+from typing import List, TYPE_CHECKING
+
+from sqlalchemy import Column, Integer, Text, ForeignKey, JSON, DateTime, String, Enum
+from sqlalchemy.orm import relationship, Mapped
+
+from ._base import BaseModel
 
 if TYPE_CHECKING:
     from .tasks import Task
@@ -32,13 +34,4 @@ class Comment(BaseModel):
 
     task: Mapped['Task'] = relationship('Task', back_populates='comments')
     user: Mapped['User'] = relationship('User', back_populates='comments')
-    documents: Mapped[List['Document']] = relationship('Document', secondary='task_document_comment_links',
-                                                       back_populates='comments', overlaps="tasks,documents")
-
-
-task_document_comment_links = Table(
-    'task_document_comment_links', BaseModel.metadata,
-    Column('task_id', Integer, ForeignKey('tasks.id', ondelete='CASCADE'), primary_key=True),
-    Column('document_id', Integer, ForeignKey('documents.id', ondelete='CASCADE'), primary_key=True),
-    Column('comment_id', Integer, ForeignKey('comments.id', ondelete='CASCADE'), primary_key=True)
-)
+    documents: Mapped[List['Document']] = relationship('Document', back_populates='comment')
