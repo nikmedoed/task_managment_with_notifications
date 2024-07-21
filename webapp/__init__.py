@@ -18,7 +18,7 @@ SYSTEM_NAME = "Прайм контроль"
 modules = {
     'auth': {'name': 'Авторизация'},
     'register': {'name': 'Регистрация'},
-    'tasks': {'name': 'Задачи', 'icon': 'card-checklist', 'secured': True},
+    'tasks': {'name': 'Мои задачи', 'icon': 'card-checklist', 'secured': True},
     'users': {'name': 'Пользователи', 'icon': 'people', 'secured': True},
     # 'documents': {'name': 'Документы', 'icon': 'file-earmark-text', 'secured': True},
     'references': {'name': 'Справочники', 'icon': 'journal-bookmark', 'secured': True},
@@ -48,7 +48,7 @@ def create_app() -> FastAPI:
 
     @app.get("/")
     async def root(request: Request):
-        return await tasks.tasks(request)
+        return await tasks.list_tasks(request)
 
     for module_name in modules:
         imported_module = importlib.import_module(f'webapp.endpoints.{module_name}')

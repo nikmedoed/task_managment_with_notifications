@@ -1,0 +1,71 @@
+{% extends "blank.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{{ title }}</h5>
+                <form method="post" action="{{ url_for('create_task') }}">
+                    {% if errors %}
+                    <div class="alert alert-danger">
+                        <ul>
+                            {% for error in errors %}
+                            <li>{{ error.msg|replace('string', 'строка')|replace('number', 'число')|replace('integer', 'целое число') }} ({{ error.loc }})
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <label for="task_type_id" class="form-label">Тип задачи</label>
+                        <select class="form-control" id="task_type_id" name="task_type_id" required>
+                            <option value="" {% if not form_data.task_type_id %}selected{% endif %}>Выберите тип</option>
+                            {% for type in task_types %}
+                            <option value="{{ type.id }}" {% if type.id == form_data.task_type_id %}selected{% endif %}>{{ type.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Описание</label>
+                        <textarea class="form-control" id="description" name="description" required>{{ form_data.description }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="object_id" class="form-label">Объект</label>
+                        <select class="form-control" id="object_id" name="object_id" required>
+                            <option value="" {% if not form_data.object_id %}selected{% endif %}>Выберите объект</option>
+                            {% for object in objects %}
+                            <option value="{{ object.id }}" {% if object.id == form_data.object_id %}selected{% endif %}>{{ object.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="supervisor_id" class="form-label">Руководитель</label>
+                        <select class="form-control" id="supervisor_id" name="supervisor_id" required>
+                            <option value="" {% if not form_data.supervisor_id %}selected{% endif %}>Выберите сотрудника</option>
+                            {% for user in users %}
+                            <option value="{{ user.id }}" {% if user.id == form_data.supervisor_id %}selected{% endif %}>{{ user.last_name }} {{ user.first_name }} - {{ user.position }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="executor_id" class="form-label">Исполнитель</label>
+                        <select class="form-control" id="executor_id" name="executor_id">
+                            <option value="" {% if not form_data.executor_id %}selected{% endif %}>Выберите сотрудника</option>
+                            {% for user in users %}
+                            <option value="{{ user.id }}" {% if user.id == form_data.executor_id %}selected{% endif %}>{{ user.last_name }} {{ user.first_name }} - {{ user.position }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="initial_plan_date" class="form-label">Плановая дата начала</label>
+                        <input type="date" class="form-control" id="initial_plan_date" name="initial_plan_date" value="{{ form_data.initial_plan_date }}" required>
+                    </div>
+                    <button type="submit" class="btn btn-secondary" name="status" value="draft" {% if form_data.status == 'draft' %}selected{% endif %}>Сохранить черновик</button>
+                    <button type="submit" class="btn btn-primary" name="status" value="planning" {% if form_data.status == 'planning' %}selected{% endif %}>Запустить в работу</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

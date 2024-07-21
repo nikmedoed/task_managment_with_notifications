@@ -1,27 +1,170 @@
 {% extends "blank.html" %}
 
 {% block content %}
-    <div class="row">
-        <div class="col-lg-6">
-
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Example Card</h5>
-                    <p>This is an examle page with no contrnt. You can use it as a starter for your custom pages.</p>
-                </div>
-            </div>
-
+<div class="row">
+    <div class="col-lg-12">
+        <div class="d-flex justify-content-end mt-3">
+            <a href="{{ url_for('add_task') }}" class="btn btn-primary mb-2">
+                <i class="bi bi-plus-lg"></i> Добавить задачу
+            </a>
         </div>
 
-        <div class="col-lg-6">
-
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Example Card</h5>
-                    <p>This is an examle page with no contrnt. You can use it as a starter for your custom pages.</p>
-                </div>
+        <!-- Supplier Tasks -->
+        <h5>
+            Постановщик: {{ supplier_tasks|length }}
+        </h5>
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover datatable">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Объект</th>
+                        <th>Тип</th>
+                        <th>Описание</th>
+                        <th>Статус</th>
+                        <th data-bs-toggle="tooltip" data-bs-placement="top"
+                            title="Актуальная плановая дата (смещение от изначальной)">Срок
+                        </th>
+                        <th data-bs-toggle="tooltip" data-bs-placement="top" title="Переносов" class="text-end">П</th>
+                        <th data-bs-toggle="tooltip" data-bs-placement="top" title="Доработок" class="text-end">Д</th>
+                        <th data-bs-toggle="tooltip" data-bs-placement="top" title="Уведомлений" class="text-end">У</th>
+                        <th>Исполнитель</th>
+                        <th>Руководитель</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for task in supplier_tasks %}
+                    <tr onclick="window.location.href='{{ url_for('view_task', task_id=task.id) }}'"
+                        style="cursor:pointer;">
+                        <td class="text-end">{{ task.id }}</td>
+                        <td>{{ task.object.name }}</td>
+                        <td>{{ task.task_type.name }}</td>
+                        <td>{{ task.description }}</td>
+                        <td>{{ task.status.value }}</td>
+                        <td>{{ task.actual_plan_date.strftime('%d.%m.%Y') }}</td>
+                        <td class="text-end">{{ task.reschedule_count }}</td>
+                        <td class="text-end">{{ task.rework_count }}</td>
+                        <td class="text-end">{{ task.notification_count }}</td>
+                        <td>{{ task.executor.first_name }} {{ task.executor.last_name }}</td>
+                        <td>{{ task.supervisor.first_name }} {{ task.supervisor.last_name }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
             </div>
+        </div>
 
+        <!-- Supervisor Tasks -->
+        <h5>
+            Руководитель: {{ supervisor_tasks|length }}
+        </h5>
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover datatable">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Объект</th>
+                        <th>Тип</th>
+                        <th>Описание</th>
+                        <th>Статус</th>
+                        <th data-bs-toggle="tooltip" data-bs-placement="top"
+                            title="Актуальная плановая дата (смещение от изначальной)">Срок
+                        </th>
+                        <th data-bs-toggle="tooltip" data-bs-placement="top" title="Переносов" class="text-end">П</th>
+                        <th data-bs-toggle="tooltip" data-bs-placement="top" title="Доработок" class="text-end">Д</th>
+                        <th data-bs-toggle="tooltip" data-bs-placement="top" title="Уведомлений" class="text-end">У</th>
+                        <th>Исполнитель</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for task in supervisor_tasks %}
+                    <tr onclick="window.location.href='{{ url_for('view_task', task_id=task.id) }}'"
+                        style="cursor:pointer;">
+                        <td class="text-end">{{ task.id }}</td>
+                        <td>{{ task.object.name }}</td>
+                        <td>{{ task.task_type.name }}</td>
+                        <td>{{ task.description }}</td>
+                        <td>{{ task.status.value }}</td>
+                        <td>{{ task.actual_plan_date.strftime('%d.%m.%Y') }}</td>
+                        <td class="text-end">{{ task.reschedule_count }}</td>
+                        <td class="text-end">{{ task.rework_count }}</td>
+                        <td class="text-end">{{ task.notification_count }}</td>
+                        <td>{{ task.executor.first_name }} {{ task.executor.last_name }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Executor Tasks -->
+        <h5>
+            Исполнитель: {{ executor_tasks|length }}
+        </h5>
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover datatable">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Объект</th>
+                        <th>Тип</th>
+                        <th>Описание</th>
+                        <th>Статус</th>
+                        <th data-bs-toggle="tooltip" data-bs-placement="top"
+                            title="Актуальная плановая дата (смещение от изначальной)">Срок
+                        </th>
+                        <th data-bs-toggle="tooltip" data-bs-placement="top" title="Переносов" class="text-end">П</th>
+                        <th data-bs-toggle="tooltip" data-bs-placement="top" title="Доработок" class="text-end">Д</th>
+                        <th data-bs-toggle="tooltip" data-bs-placement="top" title="Уведомлений" class="text-end">У</th>
+                        <th>Постановщик</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for task in executor_tasks %}
+                    <tr onclick="window.location.href='{{ url_for('view_task', task_id=task.id) }}'"
+                        style="cursor:pointer;">
+                        <td class="text-end">{{ task.id }}</td>
+                        <td>{{ task.object.name }}</td>
+                        <td>{{ task.task_type.name }}</td>
+                        <td>{{ task.description }}</td>
+                        <td>{{ task.status.value }}</td>
+                        <td>{{ task.actual_plan_date.strftime('%d.%m.%Y') }}</td>
+                        <td class="text-end">{{ task.reschedule_count }}</td>
+                        <td class="text-end">{{ task.rework_count }}</td>
+                        <td class="text-end">{{ task.notification_count }}</td>
+                        <td>{{ task.supplier.first_name }} {{ task.supplier.last_name }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const datatables = document.querySelectorAll(".datatable");
+  datatables.forEach(function (datatable) {
+    const dataTableInstance = new simpleDatatables.DataTable(datatable, {
+      searchable: false,
+      perPageSelect: false,
+      perPage: -1, // Отображать все записи
+    });
+
+    dataTableInstance.on("datatable.init", function () {
+      // Инициализация tooltips после полной загрузки таблицы
+      var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+      });
+    });
+  });
+});
+</script>
 {% endblock %}

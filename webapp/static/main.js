@@ -17,32 +17,3 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 });
 
-/**
- * Initiate Datatables
- */
-document.addEventListener("DOMContentLoaded", function () {
-  const datatables = document.querySelectorAll(".datatable");
-  datatables.forEach((datatable) => {
-    new simpleDatatables.DataTable(datatable, {
-      perPage: 100,
-      perPageSelect: [10, 50, 100, ["All", -1]],
-      columns: [
-        {
-          select: 5,
-          searchable: false,
-          filter: ["Да", "Нет"],
-        },
-        {
-          select: 6,
-          searchable: false,
-          filter: ["Да", "Нет"],
-        },
-        {
-          select: 7,
-          sortable: false,
-          searchable: false,
-        },
-      ],
-    });
-  });
-});

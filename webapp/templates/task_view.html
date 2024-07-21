@@ -1,0 +1,229 @@
+{% extends "blank.html" %}
+
+{% block content %}
+<p class="lead">
+    <strong>Постановщик:</strong> {{ task.supplier.last_name }} {{ task.supplier.first_name }} {{
+    task.supplier.middle_name }}
+</p>
+<div class="row">
+    <!-- Основные данные по задаче -->
+    <div class="col-lg-4 col-md-6 col-12 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{{ task.description }}</h5>
+                <p><strong>Объект:</strong> {{ task.object.name }}</p>
+                <p><strong>Статус:</strong> {{ task.status.value }}</p>
+                <p>
+                    <strong>Срок:</strong>
+                    {% if task.actual_plan_date == task.initial_plan_date %}
+                    {{ task.actual_plan_date.strftime('%d.%m.%Y') }}
+                    {% else %}
+                    {{ task.actual_plan_date.strftime('%d.%m.%Y') }} (план {{
+                    task.initial_plan_date.strftime('%d.%m.%Y') }} {{ ' {:+}д.'.format((task.actual_plan_date -
+                    task.initial_plan_date).days) }})
+                    {% endif %}
+                    <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#updateDateModal">
+                        <i class="bi bi-pencil-square"></i>
+                    </a>
+                </p>
+                <p><strong>Исполнитель:</strong> {{ task.executor.last_name }} {{ task.executor.first_name }} {{
+                    task.executor.middle_name }}
+                    {% if is_supplier %}
+                    <a href="#" class="text-decoration-none" data-bs-toggle="modal"
+                       data-bs-target="#updateExecutorModal">
+                        <i class="bi bi-pencil-square"></i>
+                    </a>
+                    {% endif %}
+                </p>
+                <p><strong>Руководитель:</strong> {{ task.supervisor.last_name }} {{ task.supervisor.first_name }} {{
+                    task.supervisor.middle_name }}
+                    {% if is_supplier %}
+                    <a href="#" class="text-decoration-none" data-bs-toggle="modal"
+                       data-bs-target="#updateSupervisorModal">
+                        <i class="bi bi-pencil-square"></i>
+                    </a>
+                    {% endif %}
+                </p>
+
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>Переносы</th>
+                        <th>Доработки</th>
+                        <th>Уведомления</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>{{ task.reschedule_count }}</td>
+                        <td>{{ task.rework_count }}</td>
+                        <td>{{ task.notification_count }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+                {% if is_supplier %}
+                <div class="d-flex justify-content-end">
+                    <form action="{{ url_for('cancel_task', task_id=task.id) }}" method="post" class="d-inline me-2">
+                        <button type="submit" class="btn btn-danger">Отменить</button>
+                    </form>
+                    <form action="{{ url_for('duplicate_task', task_id=task.id) }}" method="get" class="d-inline">
+                        <button type="submit" class="btn btn-secondary">Отменить и пересоздать</button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                Создано: {{ task.time_created.strftime('%d.%m.%Y') }}, обновлено: {{
+                task.time_updated.strftime('%d.%m.%Y') }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Действия и файлы -->
+    <div class="col-lg-4 col-md-6 col-12 mb-3">
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Действия</h5>
+                <form action="{{ url_for('update_status', task_id=task.id) }}" method="post">
+                    <div class="mb-3">
+                        <label for="new_status" class="form-label">Изменить статус</label>
+                        <select class="form-control" id="new_status" name="new_status">
+                            {% for status in Statuses %}
+                            <option value="{{ status.name }}">{{ status.value }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Изменить статус</button>
+                </form>
+
+                {% if task.documents %}
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Файлы</h5>
+                        <ul>
+                            {% for document in task.documents %}
+                            <li><a href="/documents/{{ document.uuid }}" target="_blank">{{ document.title }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Список комментариев -->
+    <div class="col-lg-4 col-md-12 col-12 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Комментарии</h5>
+                {% for comment in task.comments %}
+                <div>
+                    <p><strong>{{ comment.user.last_name }} {{ comment.user.first_name[0] }}. {{
+                        comment.user.middle_name[0] }}.:</strong> {{ comment.content }}</p>
+                </div>
+                {% endfor %}
+                <form action="{{ url_for('add_comment', task_id=task.id) }}" method="post"
+                      enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="comment" class="form-label">Добавить комментарий</label>
+                        <textarea class="form-control" id="comment" name="comment" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="files" class="form-label">Прикрепить файлы</label>
+                        <input class="form-control" type="file" id="files" name="files" multiple>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Отправить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для изменения даты -->
+<div class="modal fade" id="updateDateModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Изменить срок</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="updateDateForm" action="{{ url_for('update_plan_date', task_id=task.id) }}" method="post">
+                    <div class="mb-3">
+                        <label for="new_plan_date_modal" class="form-label">Новая плановая дата</label>
+                        <input type="date" class="form-control" id="new_plan_date_modal" name="new_plan_date" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-primary" form="updateDateForm">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% if is_supplier %}
+<!-- Модальное окно для изменения исполнителя -->
+<div class="modal fade" id="updateExecutorModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Изменить исполнителя</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="updateExecutorForm" action="{{ url_for('update_executor', task_id=task.id) }}" method="post">
+                    <div class="mb-3">
+                        <label for="new_executor_id" class="form-label">Новый исполнитель</label>
+                        <select class="form-control" id="new_executor_id" name="new_executor_id" required>
+                            {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.last_name }} {{ user.first_name }} {{ user.middle_name
+                                }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    испо
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-primary" form="updateExecutorForm">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для изменения руководителя -->
+<div class="modal fade" id="updateSupervisorModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Изменить руководителя</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="updateSupervisorForm" action="{{ url_for('update_supervisor', task_id=task.id) }}"
+                      method="post">
+                    <div class="mb-3">
+                        <label for="new_supervisor_id" class="form-label">Новый руководитель</label>
+                        <select class="form-control" id="new_supervisor_id" name="new_supervisor_id" required>
+                            {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.last_name }} {{ user.first_name }} {{ user.middle_name
+                                }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-primary" form="updateSupervisorForm">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

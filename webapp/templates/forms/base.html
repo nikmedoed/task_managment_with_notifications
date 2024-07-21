@@ -7,17 +7,7 @@
             <div class="card-body">
                 <h5 class="card-title">{{ title }}</h5>
                 <form method="post" action="{{ url }}">
-                    {% if errors %}
-                    <div class="alert alert-danger">
-                        <ul>
-                            {% for error in errors %}
-                            <li>{{ error.msg|replace('string', 'строка')|replace('number', 'число')|replace('integer',
-                                'целое число') }} ({{ error.loc }})
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    {% endif %}
+                    {% include "forms/errors.html" %}
                     {% block form_fields %}{% endblock %}
                     <button type="submit" class="btn btn-primary">Сохранить</button>
                 </form>

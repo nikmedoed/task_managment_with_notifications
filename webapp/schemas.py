@@ -1,6 +1,9 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
+
+from database.models import Statuses
 
 
 class ModelWithActive(BaseModel):
@@ -68,3 +71,25 @@ class UserSchema(BaseModel):
             elif v.lower() == 'false':
                 return False
         return v
+
+
+class TaskCreate(BaseModel):
+    task_type_id: int
+    status: Statuses = Field(...)
+    object_id: int
+    supplier_id: int
+    supervisor_id: int
+    executor_id: int
+    initial_plan_date: datetime
+    description: str
+    actual_plan_date: datetime = Field(None)
+
+    @field_validator('status')
+    def check_status(cls, value):
+        if value not in {Statuses.DRAFT, Statuses.PLANNING}:
+            raise ValueError("Должно быть 'Черновик' или 'Планирование'")
+        return value
+
+    @field_validator('actual_plan_date', mode='before')
+    def set_actual_plan_date(cls, value, values):
+        return values.get('initial_plan_date')
