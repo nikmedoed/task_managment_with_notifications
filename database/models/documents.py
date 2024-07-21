@@ -24,4 +24,5 @@ class Document(BaseModel):
 
     author: 'User' = relationship('User', back_populates='documents')
     comment: 'Comment' = relationship('Comment', back_populates='documents')
-    power_of_attorney: 'PowerOfAttorney' = relationship('PowerOfAttorney', back_populates='documents')
+    power_of_attorney: 'PowerOfAttorney' = relationship('PowerOfAttorney', back_populates='documents',
+                                                        foreign_keys='Document.power_of_attorney_id')
