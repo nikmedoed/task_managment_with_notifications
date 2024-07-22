@@ -1,0 +1,79 @@
+{% extends "blank.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12">
+        <!-- Documents Table -->
+        <div class="card">
+            <div class="card-body">
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <th>Дата создания</th>
+                        <th>Документ</th>
+                        <th>Тип</th>
+                        <th>Источник</th>
+                        <th>Автор</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for document in documents %}
+                    <tr>
+                        <td class="utc-time" data-utc-time="{{ document.time_created.isoformat() }}">{{ document.time_created.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>
+                            <a href="/documents/{{ document.uuid }}">{{ document.title }}</a>
+                        </td>
+                        <td>Документ по задаче</td>
+                        <td>
+                            <a href="/tasks/{{ document.comment.task.id }}">
+                                {{ document.comment.task.description }}
+                            </a>
+                        </td>
+                        <td>
+                            <span title="{{ document.author.position }}">{{ document.author.first_name }} {{ document.author.last_name }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<nav>
+    <ul class="pagination">
+        {% if page > 1 %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page - 1 }}&page_size={{ page_size }}">Previous</a>
+        </li>
+        {% endif %}
+        {% for p in range(1, (total // page_size) + 2) %}
+        <li class="page-item {% if p == page %}active{% endif %}">
+            <a class="page-link" href="?page={{ p }}&page_size={{ page_size }}">{{ p }}</a>
+        </li>
+        {% endfor %}
+        {% if page * page_size < total %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page + 1 }}&page_size={{ page_size }}">Next</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        document.querySelectorAll(".utc-time").forEach(function(element) {
+            const utcTime = element.getAttribute("data-utc-time");
+            const date = new Date(utcTime + 'Z');
+            const formattedTime = date.toLocaleString('ru-RU', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            element.textContent = formattedTime;
+        });
+    });
+</script>
+{% endblock %}

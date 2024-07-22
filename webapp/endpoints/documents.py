@@ -1,87 +1,65 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import FileResponse
-from uuid import UUID
 import os
-import shutil
-import uuid
 
-
-import hmac
-from typing import Annotated
-
-from fastapi import APIRouter, Query, HTTPException, Depends
-from fastapi.requests import Request
-from fastapi.responses import PlainTextResponse, RedirectResponse
-from joserfc import jwt
-from sqlalchemy.future import select
+from fastapi import APIRouter, Depends, Request, HTTPException, Query
+from fastapi.responses import FileResponse
+from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from webapp.deps import get_db, redis
-from webapp.utils.RedisStore import COOKIE_AUTH
-from shared.app_config import app_config
-from database.models import User
+from sqlalchemy.future import select
+from sqlalchemy.orm import joinedload
+from sqlalchemy.sql import func
+
+from database.models import Document, Comment
+from webapp.deps import get_db
+from webapp.deps import templates
 
 router = APIRouter()
 
 
-app = FastAPI()
+@router.get("", response_class=HTMLResponse)
+async def list_documents(
+        request: Request,
+        page: int = Query(1, ge=1),
+        page_size: int = Query(30, ge=1),
+        db: AsyncSession = Depends(get_db)
+):
+    offset = (page - 1) * page_size
 
-DOCUMENTS_DIR = "documents/"
+    query = (
+        select(Document)
+        .options(
+            joinedload(Document.author),
+            joinedload(Document.comment).joinedload(Comment.task)
+        )
+        .offset(offset)
+        .limit(page_size)
+    )
+
+    result = await db.execute(query)
+    documents = result.scalars().all()
+
+    count_query = select(func.count(Document.id))
+    total = (await db.execute(count_query)).scalar()
+
+    return templates.TemplateResponse("documents.html", {
+        "request": request,
+        "documents": documents,
+        "page": page,
+        "page_size": page_size,
+        "total": total
+    })
 
 
-def save_document(file_content, file_extension):
-    doc_id = str(uuid.uuid4())
-    file_path = os.path.join(DOCUMENTS_DIR, f"{doc_id}.{file_extension}")
+@router.get("/{uuid}", response_class=FileResponse)
+async def get_document(uuid: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Document).filter(Document.uuid == uuid))
+    document = result.scalars().first()
 
-    with open(file_path, "wb") as f:
-        f.write(file_content)
+    if not document:
+        raise HTTPException(status_code=404, detail="Документ не найден")
 
-    return doc_id
+    file_path = f"documents/{uuid}"
 
-
-def get_document(doc_id, file_extension):
-    file_path = os.path.join(DOCUMENTS_DIR, f"{doc_id}.{file_extension}")
     if not os.path.exists(file_path):
-        return None
+        raise HTTPException(status_code=404, detail="Файл не найден")
 
-    with open(file_path, "rb") as f:
-        return f.read()
-
-
-def delete_document(doc_id, file_extension):
-    file_path = os.path.join(DOCUMENTS_DIR, f"{doc_id}.{file_extension}")
-    if os.path.exists(file_path):
-        os.remove(file_path)
-
-
-@app.post("/upload/")
-async def upload_document(file: UploadFile):
-    file_extension = file.filename.split(".")[-1]
-    file_content = await file.read()
-
-    doc_id = save_document(file_content, file_extension)
-
-    # Сохранение метаданных в базе данных
-    # Пример:
-    # db.add(Document(id=doc_id, title=file.filename, type=file.content_type))
-    # db.commit()
-
-    return {"id": doc_id}
-
-
-@app.get("/download/{doc_id}")
-async def download_document(doc_id: UUID, file_extension: str):
-    file_content = get_document(doc_id, file_extension)
-    if file_content is None:
-        raise HTTPException(status_code=404, detail="Document not found")
-
-    return FileResponse(file_content, filename=f"{doc_id}.{file_extension}")
-
-
-@app.delete("/delete/{doc_id}")
-async def delete_document(doc_id: UUID, file_extension: str):
-    delete_document(doc_id, file_extension)
-    # Удаление метаданных из базы данных
-    # Пример:
-    # db.delete(Document.id == doc_id)
-    # db.commit()
-    return {"detail": "Document deleted"}
+    return FileResponse(file_path, media_type=document.type, filename=document.title)
