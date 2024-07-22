@@ -229,7 +229,7 @@
                 <form id="updateStatusForm" action="{{ url_for('update_task_status', task_id=task.id) }}" method="post">
                     <div class="mb-3">
                         <label for="status_comment" class="form-label">Комментарий</label>
-                        <textarea class="form-control" id="status_comment" name="status_comment" rows="3"></textarea>
+                        <textarea class="form-control" id="status_comment" name="status_comment" rows="3" required></textarea>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>

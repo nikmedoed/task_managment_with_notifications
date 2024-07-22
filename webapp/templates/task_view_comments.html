@@ -1,6 +1,6 @@
 {% for comment in task.comments %}
 <div class="comment mb-3">
-    <p>
+    <div>
         {% if comment.type == CommentType.error %}
         <i class="bi bi-exclamation-circle-fill text-danger"></i>
         {% elif comment.type == CommentType.comment %}
@@ -13,7 +13,8 @@
         <i class="ri-user-shared-line"></i>
         {% endif %}
 
-       <small class="utc-time" data-utc-time="{{ comment.time_updated.isoformat() }}">{{ comment.time_updated.strftime('%d.%m.%y %H:%M') }}</small>
+        <small class="utc-time" data-utc-time="{{ comment.time_updated.isoformat() }}">{{
+            comment.time_updated.strftime('%d.%m.%y %H:%M') }}</small>
 
         {% if comment.user %}
         <strong data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="{{ comment.user.position }}">
@@ -29,14 +30,14 @@
         {% else %}
         <small>
             {% if comment.type == CommentType.status_change %}
-             :: Статус "{{ Statuses[comment.previous_status].value }}" <i class="bi bi-arrow-right"/></i> "{{
+            :: Статус "{{ Statuses[comment.previous_status].value }}" <i class="bi bi-arrow-right"/></i> "{{
             Statuses[comment.new_status].value }}"
             {% elif comment.type == CommentType.date_change %}
-             :: Срок "{{ comment.old_date.strftime('%d.%m.%Y') }}" <i class="bi bi-arrow-right"/></i> "{{
+            :: Срок "{{ comment.old_date.strftime('%d.%m.%Y') }}" <i class="bi bi-arrow-right"/></i> "{{
             comment.new_date.strftime('%d.%m.%Y') }}"
             ({% set diff = (comment.new_date - comment.old_date).days %}{% if diff > 0 %}+{% endif %}{{ diff }} дн.)
             {% elif comment.type == CommentType.user_change %}
-             :: {{ "Исполнитель" if comment.extra_data['role'] == 'executor' else "Руководитель" }}
+            :: {{ "Исполнитель" if comment.extra_data['role'] == 'executor' else "Руководитель" }}
             "<span data-bs-toggle="tooltip" data-bs-placement="top"
                    data-bs-original-title="{{ comment.extra_data['old_user']['position'] }}">{{ comment.extra_data['old_user']['name'] }}</span>"
             <i class="bi bi-arrow-right"/></i>
@@ -49,29 +50,34 @@
         {% if comment.type == CommentType.comment %}
         <br> {{ comment.content }}
         {% endif %}
+
         {% if comment.documents %}
-        <ul>
-            {% for document in comment.documents %}
-            <li><a href="/documents/{{ document.uuid }}" target="_blank">{{ document.title }}</a></li>
-            {% endfor %}
-        </ul>
+        <div class="documents">
+            <div class="d-flex flex-column">
+                {% for document in comment.documents %}
+                <div class="document-item" style="margin-bottom: 5px;">
+                    <a href="/documents/{{ document.uuid }}" target="_blank">
+                        {% if document.title.endswith('.pdf') %}
+                        <i class="bi bi-file-earmark-pdf"></i>
+                        {% elif document.title.endswith('.doc') or document.title.endswith('.docx') %}
+                        <i class="bi bi-file-earmark-word"></i>
+                        {% elif document.title.endswith('.xls') or document.title.endswith('.xlsx') %}
+                        <i class="bi bi-file-earmark-excel"></i>
+                        {% elif document.title.endswith('.ppt') or document.title.endswith('.pptx') %}
+                        <i class="bi bi-file-earmark-ppt"></i>
+                        {% elif document.title.endswith('.jpg') or document.title.endswith('.jpeg') or
+                        document.title.endswith('.png') %}
+                        <i class="bi bi-file-earmark-image"></i>
+                        {% else %}
+                        <i class="bi bi-file-earmark"></i>
+                        {% endif %}
+                        {{ document.title }}
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
         {% endif %}
-    </p>
+    </div>
 </div>
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        document.querySelectorAll(".utc-time").forEach(function(element) {
-            const utcTime = element.getAttribute("data-utc-time");
-            const date = new Date(utcTime + 'Z');
-            const formattedTime = date.toLocaleString('ru-RU', {
-                year: '2-digit',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            element.textContent = formattedTime;
-        });
-    });
-</script>
 {% endfor %}
