@@ -19,7 +19,7 @@ async def task_archive(
         sort_column: str = Query('time_updated'),  # Default to time_updated
         sort_order: str = Query('desc'),  # Default sort order to desc
         page: int = Query(1, ge=1),
-        page_size: int = Query(10, ge=1),
+        page_size: int = Query(30, ge=1),
         db: AsyncSession = Depends(get_db)
 ):
     offset = (page - 1) * page_size

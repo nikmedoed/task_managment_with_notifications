@@ -3,6 +3,7 @@ from typing import List, TYPE_CHECKING
 
 from sqlalchemy import Column, Integer, Text, ForeignKey, JSON, DateTime, String, Enum
 from sqlalchemy.orm import relationship, Mapped
+from sqlalchemy.ext.declarative import declared_attr
 
 from ._base import BaseModel
 
@@ -18,6 +19,9 @@ class UserRole(str, enum.Enum):
     SUPERVISOR = "Руководитель"
     GUEST = 'Гость'
 
+    def __str__(self):
+        return self.value
+
 
 class CommentType(enum.Enum):
     error = "error"
@@ -27,13 +31,19 @@ class CommentType(enum.Enum):
     user_change = "user_change"
 
 
+class CommentUserRoleAssociation(BaseModel):
+    __tablename__ = 'comment_userrole_association'
+    comment_id = Column(Integer, ForeignKey('comments.id'), primary_key=True)
+    author_role = Column(Enum(UserRole), nullable=False, primary_key=True)
+    comment = relationship('Comment', back_populates='author_roles_relation')
+
+
 class Comment(BaseModel):
     __tablename__ = 'comments'
 
     type: Mapped[CommentType] = Column(Enum(CommentType), nullable=False)
     task_id: Mapped[int] = Column(Integer, ForeignKey('tasks.id'), nullable=False)
     user_id: Mapped[int] = Column(Integer, ForeignKey('users.id'), nullable=True)
-    author_role: Mapped[UserRole] = Column(Enum(UserRole), nullable=True)
     content: Mapped[str] = Column(Text, nullable=True)
     extra_data: Mapped[dict] = Column(JSON, nullable=True)
     previous_status: Mapped[str] = Column(String(50), nullable=True)
@@ -44,3 +54,25 @@ class Comment(BaseModel):
     task: Mapped['Task'] = relationship('Task', back_populates='comments')
     user: Mapped['User'] = relationship('User', back_populates='comments')
     documents: Mapped[List['Document']] = relationship('Document', back_populates='comment')
+    author_roles_relation = relationship(
+        'CommentUserRoleAssociation',
+        back_populates='comment',
+        cascade='all, delete-orphan',
+        lazy='joined'
+    )
+
+    @property
+    def author_roles(self):
+        return [assoc.author_role for assoc in self.author_roles_relation]
+
+    @author_roles.setter
+    def author_roles(self, roles: List[UserRole]):
+        self.author_roles_relation = [CommentUserRoleAssociation(author_role=role) for role in roles]
+
+    def __init__(self, **kwargs):
+        if 'author_roles' in kwargs:
+            roles = kwargs.pop('author_roles')
+            super().__init__(**kwargs)
+            self.author_roles = roles
+        else:
+            super().__init__(**kwargs)

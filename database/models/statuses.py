@@ -3,6 +3,7 @@ from enum import Enum
 from sqlalchemy import Column, String, Boolean, Text
 
 from ._base import BaseModel
+from .comments import UserRole
 
 
 class Status(BaseModel):
@@ -30,18 +31,26 @@ SUPPLIER_STATUSES = {Statuses.DRAFT, Statuses.PLANNING, Statuses.ACCEPTED,
 EXECUTOR_STATUSES = {Statuses.PLANNING, Statuses.ACCEPTED, Statuses.REWORK}
 SUPERVISOR_STATUSES = {Statuses.REVIEW}
 
-STATUS_TRANSITIONS = {
-    Statuses.DRAFT: {Statuses.PLANNING},
-    Statuses.PLANNING: {Statuses.ACCEPTED, Statuses.REJECTED},
-    Statuses.REJECTED: {Statuses.PLANNING, Statuses.ACCEPTED},
-    Statuses.ACCEPTED: {Statuses.REVIEW, Statuses.REJECTED},
-    Statuses.REVIEW: {Statuses.DONE, Statuses.REWORK},
-    Statuses.REWORK: {Statuses.REVIEW},
-    Statuses.DONE: {Statuses.REWORK},
+ROLE_STATUS_TRANSITIONS = {
+    UserRole.SUPPLIER: {
+        Statuses.DRAFT: {Statuses.PLANNING},
+        Statuses.CANCELED: {Statuses.PLANNING},
+        Statuses.REJECTED: {Statuses.PLANNING},
+        Statuses.DONE: {Statuses.REWORK},
+    },
+    UserRole.EXECUTOR: {
+        Statuses.PLANNING: {Statuses.ACCEPTED, Statuses.REJECTED},
+        Statuses.ACCEPTED: {Statuses.REVIEW, Statuses.REJECTED},
+        Statuses.REJECTED: {Statuses.ACCEPTED},
+        Statuses.REWORK: {Statuses.REVIEW},
+    },
+    UserRole.SUPERVISOR: {
+        Statuses.REVIEW: {Statuses.DONE, Statuses.REWORK},
+    }
 }
 
 
-def is_valid_transition(current_status, new_status):
+def is_valid_transition(current_status, new_status, user_roles: set):
     if new_status == Statuses.CANCELED or current_status == Statuses.CANCELED:
-        return True
-    return new_status in STATUS_TRANSITIONS.get(current_status, set())
+        return UserRole.SUPPLIER in user_roles
+    return any(new_status in ROLE_STATUS_TRANSITIONS.get(role, {}).get(current_status, set()) for role in user_roles)

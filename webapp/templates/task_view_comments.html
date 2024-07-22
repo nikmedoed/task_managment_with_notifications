@@ -20,8 +20,8 @@
         <strong data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="{{ comment.user.position }}">
             {{ comment.user.last_name }} {{ comment.user.first_name[0] }}. {{ comment.user.middle_name[0] }}.
         </strong>
-        {% if comment.author_role %}
-        <small>{{ comment.author_role.value }}</small>
+        {% if comment.author_roles %}
+        <small>({{ comment.author_roles|join(', ') }})</small>
         {% endif %}
         {% endif %}
 

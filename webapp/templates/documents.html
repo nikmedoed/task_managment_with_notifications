@@ -19,7 +19,7 @@
                     <tbody>
                     {% for document in documents %}
                     <tr>
-                        <td class="utc-time" data-utc-time="{{ document.time_created.isoformat() }}">{{ document.time_created.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td class="utc-time" data-utc-time="{{ document.time_created.isoformat() }}">{{ document.time_created.strftime('%d.%m.%y %H:%M') }}</td>
                         <td>
                             <a href="/documents/{{ document.uuid }}">{{ document.title }}</a>
                         </td>

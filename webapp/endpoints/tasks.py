@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 
-from database.models import Task, Comment, CommentType, Document, UserRole
+from database.models import Task, Comment, CommentType, Document
 from database.models import TaskType, Object, User
 from database.models.statuses import *
 from webapp.deps import get_db
@@ -100,11 +100,11 @@ async def list_tasks(request: Request, db: AsyncSession = Depends(get_db)):
     )).scalars().all()
 
     supervisor_tasks = (await db.execute(
-        base_query.filter(Task.executor_id == user.id, Task.filter_for_supervisor())
+        base_query.filter(Task.supervisor_id == user.id, Task.filter_for_supervisor())
     )).scalars().all()
 
     executor_tasks = (await db.execute(
-        base_query.filter(Task.supervisor_id == user.id, Task.filter_for_executor())
+        base_query.filter(Task.executor_id == user.id, Task.filter_for_executor())
     )).scalars().all()
 
     return templates.TemplateResponse("tasks.html", {
@@ -135,25 +135,24 @@ async def view_task(request: Request, task_id: int, db: AsyncSession = Depends(g
         raise HTTPException(status_code=404, detail="Task not found")
 
     common_data = await get_common_data(db)
+    user_roles = get_user_roles(request.state.user, task)
 
-    is_supplier = request.state.user.id == task.supplier_id
-    is_executor = request.state.user.id == task.executor_id
-    is_supervisor = request.state.user.id == task.supervisor_id
+    available_statuses = {status for role in user_roles for status in
+                          ROLE_STATUS_TRANSITIONS.get(role, {}).get(task.status, set())}
+    available_statuses_dict = {status.name: status.value for status in available_statuses}
 
-    available_statuses = {status.name: status.value for status in Statuses if is_valid_transition(task.status, status)}
-    can_change_status = can_user_change_status(request.state.user, task)
     task.comments.sort(key=lambda x: x.time_updated, reverse=True)
 
     return templates.TemplateResponse("task_view.html", {
         "request": request,
         "task": task,
         **common_data,
-        "is_supplier": is_supplier,
-        "is_executor": is_executor,
-        "is_supervisor": is_supervisor,
+        "is_supplier": UserRole.SUPPLIER in user_roles,
+        "is_executor": UserRole.EXECUTOR in user_roles,
+        "is_supervisor": UserRole.SUPERVISOR in user_roles,
         "Statuses": Statuses,
-        "available_statuses": available_statuses,
-        "can_change_status": can_change_status,
+        "available_statuses": available_statuses_dict,
+        "can_change_status": len(available_statuses) > 0,
         "title": f"Задача {task.id}: {task.task_type.name}",
         "CommentType": CommentType
     })
@@ -175,7 +174,7 @@ async def update_plan_date(
         type=CommentType.date_change,
         task_id=task.id,
         user_id=request.state.user.id,
-        author_role=get_user_role(request.state.user, task),
+        author_roles=list(get_user_roles(request.state.user, task)),
         old_date=old_plan_date,
         new_date=task.actual_plan_date
     )
@@ -189,7 +188,12 @@ async def update_plan_date(
 async def duplicate_task(request: Request, task_id: int, db: AsyncSession = Depends(get_db)):
     task = await db.get(Task, task_id)
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise HTTPException(status_code=404, detail="Задача не найдена")
+    if task.status != Statuses.CANCELED:
+        if UserRole.SUPPLIER not in get_user_roles(request.state.user, task):
+            raise HTTPException(status_code=400, detail="Недопустимый переход статуса")
+        task.status = Statuses.CANCELED
+        await db.commit()
     await task.set_cancel_if_not(db)
     common_data = await get_common_data(db)
     return templates.TemplateResponse("forms/task.html", {
@@ -222,51 +226,74 @@ async def update_role(
 
     if role == "executor":
         old_user = task.executor
-        task.executor_id = new_user_id
+        if old_user.id != new_user_id:
+            task.executor_id = new_user_id
+            if task.status not in {Statuses.DRAFT, Statuses.PLANNING} and task.status not in COMPLETED_STATUSES:
+                previous_status = task.status
+                task.status = Statuses.PLANNING
+                status_change_comment = Comment(
+                    type=CommentType.status_change,
+                    task_id=task.id,
+                    user_id=request.state.user.id,
+                    author_roles=list(get_user_roles(request.state.user, task)),
+                    previous_status=previous_status.name,
+                    new_status=Statuses.PLANNING.name
+                )
+                db.add(status_change_comment)
+
+            user_change_comment = Comment(
+                type=CommentType.user_change,
+                task_id=task.id,
+                user_id=request.state.user.id,
+                author_roles=list(get_user_roles(request.state.user, task)),
+                extra_data={
+                    "role": role,
+                    "old_user": {
+                        "id": old_user.id,
+                        "name": f"{old_user.last_name} {old_user.first_name} {old_user.middle_name}",
+                        "position": old_user.position
+                    },
+                    "new_user": {
+                        "id": new_user.id,
+                        "name": f"{new_user.last_name} {new_user.first_name} {new_user.middle_name}",
+                        "position": new_user.position
+                    }
+                }
+            )
+            db.add(user_change_comment)
     elif role == "supervisor":
         old_user = task.supervisor
-        task.supervisor_id = new_user_id
+        if old_user.id != new_user_id:
+            task.supervisor_id = new_user_id
+
+            user_change_comment = Comment(
+                type=CommentType.user_change,
+                task_id=task.id,
+                user_id=request.state.user.id,
+                author_roles=list(get_user_roles(request.state.user, task)),
+                extra_data={
+                    "role": role,
+                    "old_user": {
+                        "id": old_user.id,
+                        "name": f"{old_user.last_name} {old_user.first_name} {old_user.middle_name}",
+                        "position": old_user.position
+                    },
+                    "new_user": {
+                        "id": new_user.id,
+                        "name": f"{new_user.last_name} {new_user.first_name} {new_user.middle_name}",
+                        "position": new_user.position
+                    }
+                }
+            )
+            db.add(user_change_comment)
     else:
         raise HTTPException(status_code=400, detail="Некорректная роль")
 
-    new_comment = Comment(
-        type=CommentType.user_change,
-        task_id=task.id,
-        user_id=request.state.user.id,
-        author_role=get_user_role(request.state.user, task),
-        extra_data={
-            "role": role,
-            "old_user": {
-                "id": old_user.id,
-                "name": f"{old_user.last_name} {old_user.first_name} {old_user.middle_name}",
-                "position": old_user.position
-            },
-            "new_user": {
-                "id": new_user.id,
-                "name": f"{new_user.last_name} {new_user.first_name} {new_user.middle_name}",
-                "position": new_user.position
-            }
-        }
-    )
-    db.add(new_comment)
     db.add(task)
     await db.commit()
 
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
-
-def is_valid_transition(current_status, new_status):
-    return new_status in STATUS_TRANSITIONS.get(current_status, set())
-
-
-def can_user_change_status(user, task):
-    if user.id == task.supplier_id and (task.status in SUPPLIER_STATUSES or task.status == Statuses.DONE):
-        return True
-    if user.id == task.executor_id and task.status in EXECUTOR_STATUSES:
-        return True
-    if user.id == task.supervisor_id and task.status in SUPERVISOR_STATUSES:
-        return True
-    return False
 
 
 @router.post("/{task_id}/update_status", response_class=HTMLResponse)
@@ -286,21 +313,21 @@ async def update_task_status(
     if status_enum == Statuses.REWORK:
         task.rework_count += 1
 
-    if not is_valid_transition(task.status, status_enum):
-        raise HTTPException(status_code=400, detail="Недопустимый переход статуса")
+    previous_status = task.status
 
     if status_enum in {Statuses.REWORK, Statuses.REJECTED} and not status_comment:
         raise HTTPException(status_code=400, detail="Комментарий обязателен для этого статуса")
 
-    previous_status = task.status
-    task.update_status(status_enum)
-    author_role = get_user_role(user, task)
+    user_roles = get_user_roles(user, task)
+    if not is_valid_transition(task.status, status_enum, user_roles):
+        raise HTTPException(status_code=400, detail="Недопустимый переход статуса")
+    task.status = status_enum
     if status_comment:
         new_comment = Comment(
             type=CommentType.status_change,
             task_id=task.id,
             user_id=user.id,
-            author_role=author_role,
+            author_roles=list(get_user_roles(request.state.user, task)),
             content=status_comment,
             previous_status=previous_status.name,
             new_status=status_enum.name
@@ -328,16 +355,16 @@ async def add_comment(
 
     task = await db.get(Task, task_id)
     if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise HTTPException(status_code=404, detail="Задача не найдена")
 
     if not comment or comment.strip() == "":
-        raise HTTPException(status_code=400, detail="Comment text cannot be empty")
+        raise HTTPException(status_code=400, detail="Комментарий не может быть пустым")
 
     new_comment = Comment(
         type=CommentType.comment,
         task_id=task_id,
         user_id=user.id,
-        author_role=get_user_role(user, task),
+        author_roles=list(get_user_roles(request.state.user, task)),
         content=comment,
         new_date=datetime.utcnow()
     )
@@ -364,12 +391,14 @@ async def add_comment(
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
 
-def get_user_role(user, task):
+def get_user_roles(user, task):
+    roles = set()
     if user.id == task.supplier_id:
-        return UserRole.SUPPLIER
-    elif user.id == task.executor_id:
-        return UserRole.EXECUTOR
-    elif user.id == task.supervisor_id:
-        return UserRole.SUPERVISOR
-    else:
-        return UserRole.GUEST
+        roles.add(UserRole.SUPPLIER)
+    if user.id == task.executor_id:
+        roles.add(UserRole.EXECUTOR)
+    if user.id == task.supervisor_id:
+        roles.add(UserRole.SUPERVISOR)
+    if not roles:
+        roles.add(UserRole.GUEST)
+    return roles

@@ -36,7 +36,7 @@ async def list_documents(
     )
 
     result = await db.execute(query)
-    documents = result.scalars().all()
+    documents = result.unique().scalars().all()
 
     count_query = select(func.count(Document.id))
     total = (await db.execute(count_query)).scalar()
