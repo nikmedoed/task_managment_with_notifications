@@ -12,10 +12,19 @@ if TYPE_CHECKING:
     from .users import User
 
 
+class UserRole(str, enum.Enum):
+    SUPPLIER = "Постановщик"
+    EXECUTOR = "Исполнитель"
+    SUPERVISOR = "Руководитель"
+    GUEST = 'Гость'
+
+
 class CommentType(enum.Enum):
     error = "error"
     comment = "comment"
     status_change = "status_change"
+    date_change = "date_change"
+    user_change = "user_change"
 
 
 class Comment(BaseModel):
@@ -24,7 +33,7 @@ class Comment(BaseModel):
     type: Mapped[CommentType] = Column(Enum(CommentType), nullable=False)
     task_id: Mapped[int] = Column(Integer, ForeignKey('tasks.id'), nullable=False)
     user_id: Mapped[int] = Column(Integer, ForeignKey('users.id'), nullable=True)
-    author_role: Mapped[str] = Column(String(50), nullable=True)
+    author_role: Mapped[UserRole] = Column(Enum(UserRole), nullable=True)
     content: Mapped[str] = Column(Text, nullable=True)
     extra_data: Mapped[dict] = Column(JSON, nullable=True)
     previous_status: Mapped[str] = Column(String(50), nullable=True)

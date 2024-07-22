@@ -1,17 +1,21 @@
+import importlib
+import inspect
 import os
 import urllib.parse
-import importlib
-from fastapi import FastAPI, Request
+
+from fastapi import FastAPI, Request, Depends
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
-from webapp.endpoints import auth, register, tasks
-from webapp.deps import get_db, redis, BASE_DIR, templates, generate_static_template
-from database.models import User
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from webapp.errors import error_handlers, render_unactive, render_unverificated
-from database import async_dbsession
-import inspect
+from fastapi.responses import HTMLResponse, RedirectResponse
 import webapp.filters
+from database import async_dbsession
+from database.models import User
+from webapp.deps import get_db
+from webapp.deps import get_db, redis, BASE_DIR, templates, generate_static_template
+from webapp.endpoints import auth, register, tasks
+from webapp.endpoints import tasks
+from webapp.errors import error_handlers, render_unactive, render_unverificated
 
 SYSTEM_NAME = "Прайм контроль"
 
@@ -46,9 +50,9 @@ def create_app() -> FastAPI:
     async def redirect_index():
         return RedirectResponse(url='/')
 
-    @app.get("/")
-    async def root(request: Request):
-        return await tasks.list_tasks(request)
+    @app.get("/", response_class=HTMLResponse)
+    async def root(request: Request, db: AsyncSession = Depends(get_db)):
+        return await tasks.list_tasks(request, db)
 
     for module_name in modules:
         imported_module = importlib.import_module(f'webapp.endpoints.{module_name}')

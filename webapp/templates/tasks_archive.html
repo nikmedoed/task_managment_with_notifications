@@ -1,0 +1,41 @@
+{% extends "blank.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Архив задач
+                    <span class="badge bg-secondary">{{ archived_tasks|length }}</span>
+                </h5>
+                <table class="table table-hover datatable">
+                    <thead>
+                    <tr>
+                        <th>Название</th>
+                        <th>Описание</th>
+                        <th>Тип задачи</th>
+                        <th>Статус</th>
+                        <th>Исполнитель</th>
+                        <th>Постановщик</th>
+                        <th>Руководитель</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for task in archived_tasks %}
+                    <tr>
+                        <td>{{ task.name }}</td>
+                        <td>{{ task.description }}</td>
+                        <td>{{ task.task_type.name }}</td>
+                        <td>{{ task.status.name }}</td>
+                        <td>{{ task.executor.first_name }} {{ task.executor.last_name }}</td>
+                        <td>{{ task.supplier.first_name }} {{ task.supplier.last_name }}</td>
+                        <td>{{ task.supervisor.first_name }} {{ task.supervisor.last_name }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

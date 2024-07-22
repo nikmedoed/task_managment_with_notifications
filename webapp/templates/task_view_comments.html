@@ -1,0 +1,39 @@
+{% for comment in task.comments %}
+<div class="comment mb-3">
+    <p>
+        {% if comment.user %}
+            <strong>{{ comment.user.last_name }} {{ comment.user.first_name[0] }}. {{ comment.user.middle_name[0] }}.</strong>
+            ({{ comment.author_role.value if comment.author_role else 'Нет роли' }})
+        {% else %}
+            <strong>Система</strong>
+        {% endif %}
+        - {{ comment.new_date.strftime('%d.%m.%Y %H:%M') if comment.new_date else 'Нет даты' }}:
+    </p>
+    {% if comment.type == 'comment' %}
+        <p>{{ comment.content }}</p>
+    {% elif comment.type == 'status_change' %}
+        <p>Статус изменён с "{{ comment.previous_status }}" на "{{ comment.new_status }}"</p>
+        {% if comment.content %}
+            <p>Комментарий: {{ comment.content }}</p>
+        {% endif %}
+    {% elif comment.type == 'date_change' %}
+        <p>Срок изменён с
+            {% if comment.old_date %}"{{ comment.old_date.strftime('%d.%m.%Y') }}"{% else %}Нет старой даты{% endif %}
+            на
+            {% if comment.new_date %}"{{ comment.new_date.strftime('%d.%m.%Y') }}"{% else %}Нет новой даты{% endif %}
+        </p>
+    {% elif comment.type == 'user_change' %}
+        <p>Роль "{{ comment.extra_data['role'] }}" изменена с "{{ comment.extra_data['old_user']['name'] }} (ID: {{ comment.extra_data['old_user']['id'] }}, {{ comment.extra_data['old_user']['position'] }})" на "{{ comment.extra_data['new_user']['name'] }} (ID: {{ comment.extra_data['new_user']['id'] }}, {{ comment.extra_data['new_user']['position'] }})"</p>
+    {% elif comment.type == 'error' %}
+        <p class="text-danger">{{ comment.content }}</p>
+    {% endif %}
+    {% if comment.documents %}
+        <p>Прикрепленные файлы:</p>
+        <ul>
+            {% for document in comment.documents %}
+                <li><a href="/documents/{{ document.uuid }}" target="_blank">{{ document.title }}</a></li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</div>
+{% endfor %}

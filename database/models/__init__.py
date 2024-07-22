@@ -1,5 +1,5 @@
 from ._base import BaseModel
-from .comments import Comment, CommentType
+from .comments import Comment, CommentType, UserRole
 from .documents import Document
 from .objects import Object
 from .organizations import Organization

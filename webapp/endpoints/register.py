@@ -1,13 +1,14 @@
+import json
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Form
 from fastapi.responses import RedirectResponse
-from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
+from database.models import User
 from webapp.deps import get_db, redis, templates
 from webapp.utils.RedisStore import REDIS_KEY_USER_REGISTER
-from database.models import User
-import json
 
 router = APIRouter()
 
@@ -53,7 +54,6 @@ async def register_user(
         next_url: Annotated[str, Form()] = '/',
         db: AsyncSession = Depends(get_db)
 ):
-
     t_user_id, device_id = await redis.check_token(request)
     print("user reg post", t_user_id, device_id)
     if not t_user_id or t_user_id != user_id:
@@ -81,6 +81,11 @@ async def register_user(
             phone_number=phone_number,
             position=position,
         )
+        user_count = await db.scalar(select(User).count())
+        if user_count < 3:
+            user.verified = True
+            user.active = True
+            user.admin = True
         db.add(user)
 
     await db.commit()

@@ -1,14 +1,12 @@
 from typing import List, TYPE_CHECKING
 
-from sqlalchemy import Column, Integer, ForeignKey, DateTime, Text, Enum as SQLAlchemyEnum
+from sqlalchemy import Column, Integer, ForeignKey, DateTime, Text, Enum as SQLAlchemyEnum, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import aliased
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, aliased
 
 from ._base import BaseModel
-from .statuses import (Statuses,
-                       COMPLETED_STATUSES, SUPERVISOR_STATUSES,
-                       EXECUTOR_STATUSES, SUPPLIER_STATUSES,
+from .statuses import (Statuses, COMPLETED_STATUSES, SUPERVISOR_STATUSES, EXECUTOR_STATUSES, SUPPLIER_STATUSES,
                        is_valid_transition)
 
 if TYPE_CHECKING:
@@ -72,6 +70,11 @@ class Task(BaseModel):
         else:
             raise ValueError(f"Недопустим перевод из статуса '{self.status}' в '{new_status}'")
 
+    async def set_cancel_if_not(self, session: AsyncSession):
+        if self.status != Statuses.CANCELED:
+            self.update_status(Statuses.CANCELED)
+            await session.commit()
+
     @hybrid_property
     def documents(self):
         documents = []
@@ -81,12 +84,14 @@ class Task(BaseModel):
 
     @documents.expression
     def documents(cls):
+        from .documents import Document
+        from .comments import Comment
         DocumentAlias = aliased(Document)
         return (
-            select([DocumentAlias])
+            select(DocumentAlias)
             .select_from(Comment)
             .join(DocumentAlias, Comment.id == DocumentAlias.comment_id)
             .where(Comment.task_id == cls.id)
             .correlate(cls)
-            .as_scalar()
+            .scalar_subquery()
         )

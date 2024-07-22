@@ -3,16 +3,23 @@
 {% block content %}
 <p class="lead">
     <strong>Постановщик:</strong> {{ task.supplier.last_name }} {{ task.supplier.first_name }} {{
-    task.supplier.middle_name }}
+    task.supplier.middle_name }} – {{ task.supplier.position }}
 </p>
 <div class="row">
     <!-- Основные данные по задаче -->
-    <div class="col-lg-4 col-md-6 col-12 mb-3">
+    <div class="col-xl-5 col-lg-6 col-12 mb-3">
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">{{ task.description }}</h5>
                 <p><strong>Объект:</strong> {{ task.object.name }}</p>
-                <p><strong>Статус:</strong> {{ task.status.value }}</p>
+                <p>
+                    <strong>Статус:</strong> {{ task.status.value }}
+                    {% if can_change_status %}
+                    <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#statusModal">
+                        <i class="bi bi-box-arrow-in-up-right"></i>
+                    </a>
+                    {% endif %}
+                </p>
                 <p>
                     <strong>Срок:</strong>
                     {% if task.actual_plan_date == task.initial_plan_date %}
@@ -27,23 +34,24 @@
                     </a>
                 </p>
                 <p><strong>Исполнитель:</strong> {{ task.executor.last_name }} {{ task.executor.first_name }} {{
-                    task.executor.middle_name }}
+                    task.executor.middle_name }} – {{ task.executor.position }}
                     {% if is_supplier %}
                     <a href="#" class="text-decoration-none" data-bs-toggle="modal"
                        data-bs-target="#updateExecutorModal">
-                        <i class="bi bi-pencil-square"></i>
+                        <i class="ri-user-shared-line"></i>
                     </a>
                     {% endif %}
                 </p>
                 <p><strong>Руководитель:</strong> {{ task.supervisor.last_name }} {{ task.supervisor.first_name }} {{
-                    task.supervisor.middle_name }}
+                    task.supervisor.middle_name }} – {{ task.supervisor.position }}
                     {% if is_supplier %}
                     <a href="#" class="text-decoration-none" data-bs-toggle="modal"
                        data-bs-target="#updateSupervisorModal">
-                        <i class="bi bi-pencil-square"></i>
+                        <i class="ri-user-shared-line"></i>
                     </a>
                     {% endif %}
                 </p>
+
 
                 <table class="table">
                     <thead>
@@ -63,71 +71,43 @@
                 </table>
                 {% if is_supplier %}
                 <div class="d-flex justify-content-end">
-                    <form action="{{ url_for('cancel_task', task_id=task.id) }}" method="post" class="d-inline me-2">
+                    {% if task.status == Statuses.CANCELED %}
+                    <form action="{{ url_for('update_task_status', task_id=task.id) }}" method="post"
+                          class="d-inline me-2">
+                        <input type="hidden" name="new_status" value="PLANNING">
+                        <button type="submit" class="btn btn-warning">Восстановить</button>
+                    </form>
+                    <form action="{{ url_for('duplicate_task', task_id=task.id) }}" method="get" class="d-inline">
+                        <button type="submit" class="btn btn-secondary">Пересоздать</button>
+                    </form>
+                    {% else %}
+                    <form action="{{ url_for('update_task_status', task_id=task.id) }}" method="post"
+                          class="d-inline me-2">
+                        <input type="hidden" name="new_status" value="CANCELED">
                         <button type="submit" class="btn btn-danger">Отменить</button>
                     </form>
                     <form action="{{ url_for('duplicate_task', task_id=task.id) }}" method="get" class="d-inline">
                         <button type="submit" class="btn btn-secondary">Отменить и пересоздать</button>
                     </form>
+                    {% endif %}
                 </div>
                 {% endif %}
+
             </div>
             <div class="card-footer">
                 Создано: {{ task.time_created.strftime('%d.%m.%Y') }}, обновлено: {{
                 task.time_updated.strftime('%d.%m.%Y') }}
             </div>
         </div>
-    </div>
 
-    <!-- Действия и файлы -->
-    <div class="col-lg-4 col-md-6 col-12 mb-3">
-        <div class="card mb-3">
+        <!-- Форма для добавления комментариев -->
+        <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Действия</h5>
-                <form action="{{ url_for('update_status', task_id=task.id) }}" method="post">
-                    <div class="mb-3">
-                        <label for="new_status" class="form-label">Изменить статус</label>
-                        <select class="form-control" id="new_status" name="new_status">
-                            {% for status in Statuses %}
-                            <option value="{{ status.name }}">{{ status.value }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Изменить статус</button>
-                </form>
-
-                {% if task.documents %}
-                <div class="card mt-3">
-                    <div class="card-body">
-                        <h5 class="card-title">Файлы</h5>
-                        <ul>
-                            {% for document in task.documents %}
-                            <li><a href="/documents/{{ document.uuid }}" target="_blank">{{ document.title }}</a></li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Список комментариев -->
-    <div class="col-lg-4 col-md-12 col-12 mb-3">
-        <div class="card h-100">
-            <div class="card-body">
-                <h5 class="card-title">Комментарии</h5>
-                {% for comment in task.comments %}
-                <div>
-                    <p><strong>{{ comment.user.last_name }} {{ comment.user.first_name[0] }}. {{
-                        comment.user.middle_name[0] }}.:</strong> {{ comment.content }}</p>
-                </div>
-                {% endfor %}
+                <h5 class="card-title">Добавить комментарий</h5>
                 <form action="{{ url_for('add_comment', task_id=task.id) }}" method="post"
                       enctype="multipart/form-data">
                     <div class="mb-3">
-                        <label for="comment" class="form-label">Добавить комментарий</label>
-                        <textarea class="form-control" id="comment" name="comment" rows="3" required></textarea>
+                        <textarea class="form-control" id="comment" name="comment" rows="3"></textarea>
                     </div>
                     <div class="mb-3">
                         <label for="files" class="form-label">Прикрепить файлы</label>
@@ -135,6 +115,16 @@
                     </div>
                     <button type="submit" class="btn btn-primary">Отправить</button>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Список комментариев -->
+    <div class="col-xl-7 col-lg-6 col-12 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Комментарии</h5>
+                {% include "task_view_comments.html" %}
             </div>
         </div>
     </div>
@@ -173,18 +163,18 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="updateExecutorForm" action="{{ url_for('update_executor', task_id=task.id) }}" method="post">
+                <form id="updateExecutorForm" action="{{ url_for('update_role', task_id=task.id, role='executor') }}"
+                      method="post">
                     <div class="mb-3">
                         <label for="new_executor_id" class="form-label">Новый исполнитель</label>
-                        <select class="form-control" id="new_executor_id" name="new_executor_id" required>
+                        <select class="form-control" id="new_executor_id" name="new_user_id" required>
                             {% for user in users %}
                             <option value="{{ user.id }}">{{ user.last_name }} {{ user.first_name }} {{ user.middle_name
-                                }}
+                                }} – {{ user.position }}
                             </option>
                             {% endfor %}
                         </select>
                     </div>
-                    испо
                 </form>
             </div>
             <div class="modal-footer">
@@ -204,14 +194,14 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="updateSupervisorForm" action="{{ url_for('update_supervisor', task_id=task.id) }}"
-                      method="post">
+                <form id="updateSupervisorForm"
+                      action="{{ url_for('update_role', task_id=task.id, role='supervisor') }}" method="post">
                     <div class="mb-3">
                         <label for="new_supervisor_id" class="form-label">Новый руководитель</label>
-                        <select class="form-control" id="new_supervisor_id" name="new_supervisor_id" required>
+                        <select class="form-control" id="new_supervisor_id" name="new_user_id" required>
                             {% for user in users %}
                             <option value="{{ user.id }}">{{ user.last_name }} {{ user.first_name }} {{ user.middle_name
-                                }}
+                                }} – {{ user.position }}
                             </option>
                             {% endfor %}
                         </select>
@@ -226,4 +216,54 @@
     </div>
 </div>
 {% endif %}
+
+<!-- Модальное окно для изменения статуса -->
+<div class="modal fade" id="statusModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Изменить статус</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="updateStatusForm" action="{{ url_for('update_task_status', task_id=task.id) }}" method="post">
+                    <div class="mb-3">
+                        <label for="status_comment" class="form-label">Комментарий</label>
+                        <textarea class="form-control" id="status_comment" name="status_comment" rows="3"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        {% for status, label in available_statuses.items() %}
+                        <button type="button" class="btn btn-primary" data-status="{{ status }}"
+                                onclick="submitStatusForm('{{ status }}')">{{ label }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function submitStatusForm(status) {
+        const form = document.getElementById('updateStatusForm');
+        const commentField = document.getElementById('status_comment');
+        const requiredStatuses = ['REWORK', 'REJECTED'];
+
+        if (requiredStatuses.includes(status) && !commentField.value.trim()) {
+            commentField.setCustomValidity('Комментарий обязателен для этого статуса.');
+            commentField.reportValidity();
+            return;
+        }
+
+        commentField.setCustomValidity('');
+        const statusInput = document.createElement('input');
+        statusInput.type = 'hidden';
+        statusInput.name = 'new_status';
+        statusInput.value = status;
+        form.appendChild(statusInput);
+        form.submit();
+    }
+</script>
 {% endblock %}
