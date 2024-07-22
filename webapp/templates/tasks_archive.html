@@ -1,41 +1,105 @@
+<!-- tasks_archive.html -->
 {% extends "blank.html" %}
 
 {% block content %}
 <div class="row">
     <div class="col-lg-12">
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a href="?status_filter=all&page={{ page }}&page_size={{ page_size }}"
+                   class="nav-link {% if status_filter == 'all' %}active{% endif %}" id="all-tab" role="tab">
+                   Все ({{ total_all }})
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a href="?status_filter=active&page={{ page }}&page_size={{ page_size }}"
+                   class="nav-link {% if status_filter == 'active' %}active{% endif %}" id="active-tab" role="tab">
+                   Активные ({{ total_active }})
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a href="?status_filter=completed&page={{ page }}&page_size={{ page_size }}"
+                   class="nav-link {% if status_filter == 'completed' %}active{% endif %}" id="completed-tab" role="tab">
+                   Завершенные ({{ total_completed }})
+                </a>
+            </li>
+        </ul>
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">Архив задач
-                    <span class="badge bg-secondary">{{ archived_tasks|length }}</span>
-                </h5>
-                <table class="table table-hover datatable">
-                    <thead>
-                    <tr>
-                        <th>Название</th>
-                        <th>Описание</th>
-                        <th>Тип задачи</th>
-                        <th>Статус</th>
-                        <th>Исполнитель</th>
-                        <th>Постановщик</th>
-                        <th>Руководитель</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for task in archived_tasks %}
-                    <tr>
-                        <td>{{ task.name }}</td>
-                        <td>{{ task.description }}</td>
-                        <td>{{ task.task_type.name }}</td>
-                        <td>{{ task.status.name }}</td>
-                        <td>{{ task.executor.first_name }} {{ task.executor.last_name }}</td>
-                        <td>{{ task.supplier.first_name }} {{ task.supplier.last_name }}</td>
-                        <td>{{ task.supervisor.first_name }} {{ task.supervisor.last_name }}</td>
-                    </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+                <div class="tab-content" id="myTabContent">
+                    <div class="tab-pane fade show active" id="tasks" role="tabpanel" aria-labelledby="all-tab">
+                        <table id="tasksTable" class="table table-hover">
+                            <thead>
+                            <tr>
+                                <th> ID </th>
+                                {% for column, display_name in {
+                                    'time_updated': 'Дата изменения',
+                                    'description': 'Описание',
+                                    'task_type_id': 'Тип',
+                                    'object_id': 'Объект',
+                                    'supplier_id': 'Постановщик',
+                                    'executor_id': 'Исполнитель',
+                                    'supervisor_id': 'Руководитель',
+                                    'status': 'Статус'
+                                }.items() %}
+                                <th>
+                                    <a href="?status_filter={{ status_filter }}&sort_column={{ column }}&sort_order={% if sort_column == column and sort_order == 'asc' %}desc{% else %}asc{% endif %}&page={{ page }}&page_size={{ page_size }}">
+                                        {{ display_name }}
+                                        {% if sort_column == column %}
+                                            {% if sort_order == 'asc' %}
+                                                <i class="bi bi-arrow-up"></i>
+                                            {% else %}
+                                                <i class="bi bi-arrow-down"></i>
+                                            {% endif %}
+                                        {% endif %}
+                                    </a>
+                                </th>
+                                {% endfor %}
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for task in tasks %}
+                            <tr onclick="window.location.href='{{ url_for('view_task', task_id=task.id) }}'" style="cursor:pointer;">
+                                <td>{{ task.id }}</td>
+                                <td class="utc-time" data-utc-time="{{ task.time_updated.isoformat() }}">{{ task.time_updated.strftime('%d.%m.%y %H:%M') }}</td>
+                                <td>{{ task.description }}</td>
+                                <td>{{ task.task_type.name }}</td>
+                                <td>{{ task.object.name }}</td>
+                                <td>{{ task.supplier.first_name }} {{ task.supplier.last_name }}</td>
+                                <td>{{ task.executor.first_name }} {{ task.executor.last_name }}</td>
+                                <td>{{ task.supervisor.first_name }} {{ task.supervisor.last_name }}</td>
+                                <td>{{ task.status.value }}</td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<nav>
+    <ul class="pagination">
+        {% if page > 1 %}
+        <li class="page-item">
+            <a class="page-link"
+               href="?status_filter={{ status_filter }}&sort_column={{ sort_column }}&sort_order={{ sort_order }}&page={{ page - 1 }}&page_size={{ page_size }}">Previous</a>
+        </li>
+        {% endif %}
+        {% for p in range(1, (total // page_size) + 2) %}
+        <li class="page-item {% if p == page %}active{% endif %}">
+            <a class="page-link"
+               href="?status_filter={{ status_filter }}&sort_column={{ sort_column }}&sort_order={{ sort_order }}&page={{ p }}&page_size={{ page_size }}">{{ p }}</a>
+        </li>
+        {% endfor %}
+        {% if page * page_size < total %}
+        <li class="page-item">
+            <a class="page-link"
+               href="?status_filter={{ status_filter }}&sort_column={{ sort_column }}&sort_order={{ sort_order }}&page={{ page + 1 }}&page_size={{ page_size }}">Next</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
 {% endblock %}

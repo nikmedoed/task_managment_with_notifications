@@ -23,6 +23,7 @@ modules = {
     'auth': {'name': 'Авторизация'},
     'register': {'name': 'Регистрация'},
     'tasks': {'name': 'Мои задачи', 'icon': 'card-checklist', 'secured': True},
+    'tasks_archive': {'name': 'Все задачи', 'icon': 'archive', 'secured': True},
     'users': {'name': 'Пользователи', 'icon': 'people', 'secured': True},
     'documents': {'name': 'Документы', 'icon': 'file-earmark-text', 'secured': True},
     'references': {'name': 'Справочники', 'icon': 'journal-bookmark', 'secured': True},

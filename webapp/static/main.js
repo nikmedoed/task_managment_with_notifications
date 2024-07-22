@@ -15,19 +15,24 @@ document.addEventListener("DOMContentLoaded", function () {
       history.replaceState(null, null, event.target.getAttribute("href"));
     });
   });
-});
 
-document.addEventListener("DOMContentLoaded", function() {
-        document.querySelectorAll(".utc-time").forEach(function(element) {
-            const utcTime = element.getAttribute("data-utc-time");
-            const date = new Date(utcTime + 'Z');
-            const formattedTime = date.toLocaleString('ru-RU', {
-                year: '2-digit',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            element.textContent = formattedTime;
-        });
+  document.querySelectorAll(".utc-time").forEach(function(element) {
+        const utcTime = element.getAttribute("data-utc-time");
+        const date = new Date(utcTime + 'Z');
+
+        const options = {
+            year: '2-digit',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        };
+
+        const formatter = new Intl.DateTimeFormat('ru-RU', options);
+        const formattedTime = formatter.format(date);
+
+        element.textContent = formattedTime.replace(',', '');
     });
+
+});
