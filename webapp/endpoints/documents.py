@@ -9,11 +9,12 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
 
 from database.models import Document, Comment
-from webapp.deps import get_db
-from webapp.deps import templates
+from webapp.deps import get_db, templates
 
 router = APIRouter()
 
+
+# todo удаление, переименование и архивирование
 
 @router.get("", response_class=HTMLResponse)
 async def list_documents(

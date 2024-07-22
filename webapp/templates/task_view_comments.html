@@ -46,16 +46,17 @@
             {% endif %}
         </small>
         {% endif %}
-
-        {% if comment.type == CommentType.comment %}
-        <br> {{ comment.content }}
+    </div>
+    <div style="margin-left:20px">
+        {% if comment.content %}
+        {{ comment.content }}
         {% endif %}
 
         {% if comment.documents %}
         <div class="documents">
             <div class="d-flex flex-column">
                 {% for document in comment.documents %}
-                <div class="document-item" style="margin-bottom: 5px;">
+                <div class="document-item"  >
                     <a href="/documents/{{ document.uuid }}" target="_blank">
                         {% if document.title.endswith('.pdf') %}
                         <i class="bi bi-file-earmark-pdf"></i>

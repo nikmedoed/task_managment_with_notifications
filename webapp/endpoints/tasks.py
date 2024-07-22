@@ -313,26 +313,26 @@ async def update_task_status(
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
 
-
 @router.post("/{task_id}/comment", response_class=HTMLResponse)
 async def add_comment(
-    request: Request,
-    task_id: int,
-    comment: Optional[str] = Form(None),
-    files: List[UploadFile] = [],
-    db: AsyncSession = Depends(get_db)
+        request: Request,
+        task_id: int,
+        comment: Optional[str] = Form(None),
+        files: List[UploadFile] = [],
+        db: AsyncSession = Depends(get_db)
 ):
     user = request.state.user
 
     if not os.path.exists('documents'):
         os.makedirs('documents')
 
-    # Fetch the task
     task = await db.get(Task, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    # Create the comment
+    if not comment or comment.strip() == "":
+        raise HTTPException(status_code=400, detail="Comment text cannot be empty")
+
     new_comment = Comment(
         type=CommentType.comment,
         task_id=task_id,
@@ -342,26 +342,27 @@ async def add_comment(
         new_date=datetime.utcnow()
     )
     db.add(new_comment)
-    await db.flush()  # Ensure the comment_id is generated
+    await db.flush()
 
-    # Handle files
     for file in files:
-        uuid_str = str(uuid.uuid4())
-        file_path = f"documents/{uuid_str}"
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        new_document = Document(
-            uuid=uuid_str,
-            title=file.filename,
-            type=file.content_type,
-            author_id=user.id,
-            comment_id=new_comment.id  # Use the generated comment_id
-        )
-        db.add(new_document)
+        if file.filename:
+            uuid_str = str(uuid.uuid4())
+            file_path = f"documents/{uuid_str}"
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+            new_document = Document(
+                uuid=uuid_str,
+                title=file.filename,
+                type=file.content_type,
+                author_id=user.id,
+                comment_id=new_comment.id
+            )
+            db.add(new_document)
 
     await db.commit()
     await db.refresh(new_comment)
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
+
 
 def get_user_role(user, task):
     if user.id == task.supplier_id:
