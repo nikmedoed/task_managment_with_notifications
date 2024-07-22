@@ -37,9 +37,13 @@ class Task(BaseModel):
 
     task_type: 'TaskType' = relationship('TaskType')
     object: 'Object' = relationship('Object', back_populates='tasks')
-    supplier: 'User' = relationship('User', foreign_keys='Task.supplier_id', back_populates='tasks_as_supplier')
-    supervisor: 'User' = relationship('User', foreign_keys='Task.supervisor_id', back_populates='tasks_as_supervisor')
-    executor: 'User' = relationship('User', foreign_keys='Task.executor_id', back_populates='tasks_as_executor')
+
+    supplier: 'User' = relationship('User', foreign_keys='Task.supplier_id', back_populates='tasks_as_supplier',
+                                    lazy='joined')
+    supervisor: 'User' = relationship('User', foreign_keys='Task.supervisor_id', back_populates='tasks_as_supervisor',
+                                      lazy='joined')
+    executor: 'User' = relationship('User', foreign_keys='Task.executor_id', back_populates='tasks_as_executor',
+                                    lazy='joined')
     comments: List['Comment'] = relationship('Comment', back_populates='task', order_by='Comment.id')
     notifications: List['TaskNotification'] = relationship('TaskNotification', back_populates='task')
 

@@ -1,39 +1,77 @@
 {% for comment in task.comments %}
 <div class="comment mb-3">
     <p>
+        {% if comment.type == CommentType.error %}
+        <i class="bi bi-exclamation-circle-fill text-danger"></i>
+        {% elif comment.type == CommentType.comment %}
+        <i class="bi bi-chat-dots"></i>
+        {% elif comment.type == CommentType.status_change %}
+        <i class="bi bi-arrow-left-right"></i>
+        {% elif comment.type == CommentType.date_change %}
+        <i class="bi bi-calendar"></i>
+        {% elif comment.type == CommentType.user_change %}
+        <i class="ri-user-shared-line"></i>
+        {% endif %}
+
+       <small class="utc-time" data-utc-time="{{ comment.time_updated.isoformat() }}">{{ comment.time_updated.strftime('%d.%m.%y %H:%M') }}</small>
+
         {% if comment.user %}
-            <strong>{{ comment.user.last_name }} {{ comment.user.first_name[0] }}. {{ comment.user.middle_name[0] }}.</strong>
-            ({{ comment.author_role.value if comment.author_role else 'Нет роли' }})
+        <strong data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="{{ comment.user.position }}">
+            {{ comment.user.last_name }} {{ comment.user.first_name[0] }}. {{ comment.user.middle_name[0] }}.
+        </strong>
+        {% if comment.author_role %}
+        <small>{{ comment.author_role.value }}</small>
+        {% endif %}
+        {% endif %}
+
+        {% if comment.type == CommentType.error %}
+        <span class="text-danger">{{ comment.content }}</span>
         {% else %}
-            <strong>Система</strong>
+        <small>
+            {% if comment.type == CommentType.status_change %}
+             :: Статус "{{ Statuses[comment.previous_status].value }}" <i class="bi bi-arrow-right"/></i> "{{
+            Statuses[comment.new_status].value }}"
+            {% elif comment.type == CommentType.date_change %}
+             :: Срок "{{ comment.old_date.strftime('%d.%m.%Y') }}" <i class="bi bi-arrow-right"/></i> "{{
+            comment.new_date.strftime('%d.%m.%Y') }}"
+            ({% set diff = (comment.new_date - comment.old_date).days %}{% if diff > 0 %}+{% endif %}{{ diff }} дн.)
+            {% elif comment.type == CommentType.user_change %}
+             :: {{ "Исполнитель" if comment.extra_data['role'] == 'executor' else "Руководитель" }}
+            "<span data-bs-toggle="tooltip" data-bs-placement="top"
+                   data-bs-original-title="{{ comment.extra_data['old_user']['position'] }}">{{ comment.extra_data['old_user']['name'] }}</span>"
+            <i class="bi bi-arrow-right"/></i>
+            "<span data-bs-toggle="tooltip" data-bs-placement="top"
+                   data-bs-original-title="{{ comment.extra_data['new_user']['position'] }}">{{ comment.extra_data['new_user']['name'] }}</span>"
+            {% endif %}
+        </small>
         {% endif %}
-        - {{ comment.new_date.strftime('%d.%m.%Y %H:%M') if comment.new_date else 'Нет даты' }}:
-    </p>
-    {% if comment.type == 'comment' %}
-        <p>{{ comment.content }}</p>
-    {% elif comment.type == 'status_change' %}
-        <p>Статус изменён с "{{ comment.previous_status }}" на "{{ comment.new_status }}"</p>
-        {% if comment.content %}
-            <p>Комментарий: {{ comment.content }}</p>
+
+        {% if comment.type == CommentType.comment %}
+        <br> {{ comment.content }}
         {% endif %}
-    {% elif comment.type == 'date_change' %}
-        <p>Срок изменён с
-            {% if comment.old_date %}"{{ comment.old_date.strftime('%d.%m.%Y') }}"{% else %}Нет старой даты{% endif %}
-            на
-            {% if comment.new_date %}"{{ comment.new_date.strftime('%d.%m.%Y') }}"{% else %}Нет новой даты{% endif %}
-        </p>
-    {% elif comment.type == 'user_change' %}
-        <p>Роль "{{ comment.extra_data['role'] }}" изменена с "{{ comment.extra_data['old_user']['name'] }} (ID: {{ comment.extra_data['old_user']['id'] }}, {{ comment.extra_data['old_user']['position'] }})" на "{{ comment.extra_data['new_user']['name'] }} (ID: {{ comment.extra_data['new_user']['id'] }}, {{ comment.extra_data['new_user']['position'] }})"</p>
-    {% elif comment.type == 'error' %}
-        <p class="text-danger">{{ comment.content }}</p>
-    {% endif %}
-    {% if comment.documents %}
-        <p>Прикрепленные файлы:</p>
+        {% if comment.documents %}
         <ul>
             {% for document in comment.documents %}
-                <li><a href="/documents/{{ document.uuid }}" target="_blank">{{ document.title }}</a></li>
+            <li><a href="/documents/{{ document.uuid }}" target="_blank">{{ document.title }}</a></li>
             {% endfor %}
         </ul>
-    {% endif %}
+        {% endif %}
+    </p>
 </div>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        document.querySelectorAll(".utc-time").forEach(function(element) {
+            const utcTime = element.getAttribute("data-utc-time");
+            const date = new Date(utcTime + 'Z');
+            const formattedTime = date.toLocaleString('ru-RU', {
+                year: '2-digit',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            element.textContent = formattedTime;
+        });
+    });
+</script>
 {% endfor %}

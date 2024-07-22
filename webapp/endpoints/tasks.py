@@ -92,10 +92,7 @@ async def list_tasks(request: Request, db: AsyncSession = Depends(get_db)):
 
     base_query = select(Task).options(
         joinedload(Task.task_type),
-        joinedload(Task.object),
-        joinedload(Task.executor),
-        joinedload(Task.supervisor),
-        joinedload(Task.supplier)
+        joinedload(Task.object)
     )
 
     supplier_tasks = (await db.execute(
@@ -125,9 +122,6 @@ async def view_task(request: Request, task_id: int, db: AsyncSession = Depends(g
         .options(
             joinedload(Task.task_type),
             joinedload(Task.object),
-            joinedload(Task.supplier),
-            joinedload(Task.supervisor),
-            joinedload(Task.executor),
             joinedload(Task.comments).joinedload(Comment.user),
             joinedload(Task.comments).joinedload(Comment.documents)
         )
@@ -148,6 +142,7 @@ async def view_task(request: Request, task_id: int, db: AsyncSession = Depends(g
 
     available_statuses = {status.name: status.value for status in Statuses if is_valid_transition(task.status, status)}
     can_change_status = can_user_change_status(request.state.user, task)
+    task.comments.sort(key=lambda x: x.time_updated, reverse=True)
 
     return templates.TemplateResponse("task_view.html", {
         "request": request,
@@ -159,7 +154,8 @@ async def view_task(request: Request, task_id: int, db: AsyncSession = Depends(g
         "Statuses": Statuses,
         "available_statuses": available_statuses,
         "can_change_status": can_change_status,
-        "title": f"Задача {task.id}: {task.task_type.name}"
+        "title": f"Задача {task.id}: {task.task_type.name}",
+        "CommentType": CommentType
     })
 
 
@@ -223,13 +219,6 @@ async def update_role(
     new_user = await db.get(User, new_user_id)
     if not new_user:
         raise HTTPException(status_code=404, detail="Нет такого пользователя")
-
-    if role == "executor":
-        task.executor_id = new_user_id
-    elif role == "supervisor":
-        task.supervisor_id = new_user_id
-    else:
-        raise HTTPException(status_code=400, detail="Некорректная роль")
 
     if role == "executor":
         old_user = task.executor
@@ -324,19 +313,26 @@ async def update_task_status(
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
 
+
 @router.post("/{task_id}/comment", response_class=HTMLResponse)
 async def add_comment(
-        request: Request,
-        task_id: int,
-        comment: Optional[str] = Form(None),
-        files: List[UploadFile] = [],
-        db: AsyncSession = Depends(get_db)
+    request: Request,
+    task_id: int,
+    comment: Optional[str] = Form(None),
+    files: List[UploadFile] = [],
+    db: AsyncSession = Depends(get_db)
 ):
     user = request.state.user
 
     if not os.path.exists('documents'):
         os.makedirs('documents')
+
+    # Fetch the task
     task = await db.get(Task, task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    # Create the comment
     new_comment = Comment(
         type=CommentType.comment,
         task_id=task_id,
@@ -346,7 +342,9 @@ async def add_comment(
         new_date=datetime.utcnow()
     )
     db.add(new_comment)
+    await db.flush()  # Ensure the comment_id is generated
 
+    # Handle files
     for file in files:
         uuid_str = str(uuid.uuid4())
         file_path = f"documents/{uuid_str}"
@@ -357,14 +355,13 @@ async def add_comment(
             title=file.filename,
             type=file.content_type,
             author_id=user.id,
-            comment_id=new_comment.id  # добавляем связь документа с комментарием
+            comment_id=new_comment.id  # Use the generated comment_id
         )
         db.add(new_document)
 
     await db.commit()
     await db.refresh(new_comment)
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
-
 
 def get_user_role(user, task):
     if user.id == task.supplier_id:
