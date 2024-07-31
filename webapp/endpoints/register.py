@@ -9,6 +9,7 @@ from sqlalchemy.future import select
 from database.models import User
 from webapp.deps import get_db, redis, templates
 from webapp.utils.RedisStore import REDIS_KEY_USER_REGISTER
+from sqlalchemy import func
 
 router = APIRouter()
 
@@ -19,11 +20,11 @@ async def get_register(
 ):
     user_id, device_id = await redis.check_token(request)
     if not user_id:
-        return RedirectResponse('/auth')
+        return RedirectResponse('/auth', status_code=303)
 
     session_data = await redis.get(f"{REDIS_KEY_USER_REGISTER}:{user_id}")
     if not session_data:
-        return RedirectResponse('/auth')
+        return RedirectResponse('/auth', status_code=303)
 
     session_data = json.loads(session_data)
 
@@ -57,7 +58,7 @@ async def register_user(
     t_user_id, device_id = await redis.check_token(request)
     print("user reg post", t_user_id, device_id)
     if not t_user_id or t_user_id != user_id:
-        return RedirectResponse('/auth')
+        return RedirectResponse('/auth', status_code=303)
 
     result = await db.execute(select(User).filter(User.telegram_id == user_id))
     user = result.scalars().first()
@@ -81,15 +82,15 @@ async def register_user(
             phone_number=phone_number,
             position=position,
         )
-        user_count = await db.scalar(select(User).count())
+        user_count = await db.scalar(select(func.count(User.id)))
         if user_count < 3:
-            user.verified = True
+            user.verificated = True
             user.active = True
             user.admin = True
         db.add(user)
 
     await db.commit()
     await db.refresh(user)
-    response = RedirectResponse(next_url)
+    response = RedirectResponse(next_url, status_code=303)
     await redis.set_token(user_id, device_id, response)
     return response
