@@ -57,7 +57,6 @@ class UserSchema(BaseModel):
     email: Optional[EmailStr]
     phone_number: Optional[str] = Field(None, max_length=15)
     telegram_nick: Optional[str] = Field(None, max_length=50)
-    telegram_id: int
     position: str = Field(..., max_length=100)
     verificated: bool = False
     active: bool = True

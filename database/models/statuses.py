@@ -37,6 +37,7 @@ ROLE_STATUS_TRANSITIONS = {
         Statuses.CANCELED: {Statuses.PLANNING},
         Statuses.REJECTED: {Statuses.PLANNING},
         Statuses.DONE: {Statuses.REWORK},
+        Statuses.PLANNING: {Statuses.DRAFT}
     },
     UserRole.EXECUTOR: {
         Statuses.PLANNING: {Statuses.ACCEPTED, Statuses.REJECTED},
