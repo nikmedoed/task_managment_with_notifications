@@ -1,5 +1,9 @@
 # tasks_archive.py
+from io import BytesIO
+
+import openpyxl
 from fastapi import APIRouter, Depends, Request, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
@@ -11,6 +15,7 @@ from database.models.statuses import COMPLETED_STATUSES
 from webapp.deps import get_db, templates
 
 router = APIRouter()
+
 
 @router.get("", response_class=HTMLResponse)
 async def task_archive(
@@ -83,3 +88,50 @@ async def task_archive(
         "total_active": total_active,
         "total_completed": total_completed
     })
+
+
+@router.get("/export", response_class=StreamingResponse, name="export_tasks_to_excel")
+async def export_tasks_to_excel(db: AsyncSession = Depends(get_db)):
+    # Fetch all tasks
+    query = select(Task).options(
+        joinedload(Task.task_type),
+        joinedload(Task.object),
+        joinedload(Task.supplier),
+        joinedload(Task.executor),
+        joinedload(Task.supervisor)
+    )
+    result = await db.execute(query)
+    tasks = result.scalars().all()
+
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = "Tasks"
+
+    headers = [
+        "ID", "Description", "Task Type", "Object", "Supplier",
+        "Supervisor", "Executor", "Status", "Time Created", "Time Updated"
+    ]
+    sheet.append(headers)
+
+    for task in tasks:
+        row = [
+            task.id,
+            task.description,
+            task.task_type.name,
+            task.object.name,
+            f"{task.supplier.first_name} {task.supplier.last_name}",
+            f"{task.supervisor.first_name} {task.supervisor.last_name}",
+            f"{task.executor.first_name} {task.executor.last_name}",
+            task.status.value,
+            task.time_created.strftime("%Y-%m-%d %H:%M:%S"),
+            task.time_updated.strftime("%Y-%m-%d %H:%M:%S")
+        ]
+        sheet.append(row)
+
+    buffer = BytesIO()
+    workbook.save(buffer)
+    buffer.seek(0)
+
+    response = StreamingResponse(buffer, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response.headers["Content-Disposition"] = "attachment; filename=tasks.xlsx"
+    return response

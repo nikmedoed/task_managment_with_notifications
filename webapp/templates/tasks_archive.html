@@ -4,23 +4,29 @@
 {% block content %}
 <div class="row">
     <div class="col-lg-12">
+        <div class="d-flex justify-content-end mt-3">
+            <a href="{{ url_for('export_tasks_to_excel') }}" class="btn btn-success mb-2">
+                <i class="bi bi-file-earmark-excel-fill"></i> Скачать в XLSX
+            </a>
+        </div>
         <ul class="nav nav-tabs" id="myTab" role="tablist">
             <li class="nav-item" role="presentation">
                 <a href="?status_filter=all&page={{ page }}&page_size={{ page_size }}"
                    class="nav-link {% if status_filter == 'all' %}active{% endif %}" id="all-tab" role="tab">
-                   Все ({{ total_all }})
+                    Все ({{ total_all }})
                 </a>
             </li>
             <li class="nav-item" role="presentation">
                 <a href="?status_filter=active&page={{ page }}&page_size={{ page_size }}"
                    class="nav-link {% if status_filter == 'active' %}active{% endif %}" id="active-tab" role="tab">
-                   Активные ({{ total_active }})
+                    Активные ({{ total_active }})
                 </a>
             </li>
             <li class="nav-item" role="presentation">
                 <a href="?status_filter=completed&page={{ page }}&page_size={{ page_size }}"
-                   class="nav-link {% if status_filter == 'completed' %}active{% endif %}" id="completed-tab" role="tab">
-                   Завершенные ({{ total_completed }})
+                   class="nav-link {% if status_filter == 'completed' %}active{% endif %}" id="completed-tab"
+                   role="tab">
+                    Завершенные ({{ total_completed }})
                 </a>
             </li>
         </ul>
@@ -31,26 +37,26 @@
                         <table id="tasksTable" class="table table-hover">
                             <thead>
                             <tr>
-                                <th> ID </th>
+                                <th> ID</th>
                                 {% for column, display_name in {
-                                    'time_updated': 'Дата изменения',
-                                    'description': 'Описание',
-                                    'task_type_id': 'Тип',
-                                    'object_id': 'Объект',
-                                    'supplier_id': 'Постановщик',
-                                    'executor_id': 'Исполнитель',
-                                    'supervisor_id': 'Руководитель',
-                                    'status': 'Статус'
+                                'time_updated': 'Дата изменения',
+                                'description': 'Описание',
+                                'task_type_id': 'Тип',
+                                'object_id': 'Объект',
+                                'supplier_id': 'Постановщик',
+                                'supervisor_id': 'Руководитель',
+                                'executor_id': 'Исполнитель',
+                                'status': 'Статус'
                                 }.items() %}
                                 <th>
                                     <a href="?status_filter={{ status_filter }}&sort_column={{ column }}&sort_order={% if sort_column == column and sort_order == 'asc' %}desc{% else %}asc{% endif %}&page={{ page }}&page_size={{ page_size }}">
                                         {{ display_name }}
                                         {% if sort_column == column %}
-                                            {% if sort_order == 'asc' %}
-                                                <i class="bi bi-arrow-up"></i>
-                                            {% else %}
-                                                <i class="bi bi-arrow-down"></i>
-                                            {% endif %}
+                                        {% if sort_order == 'asc' %}
+                                        <i class="bi bi-arrow-up"></i>
+                                        {% else %}
+                                        <i class="bi bi-arrow-down"></i>
+                                        {% endif %}
                                         {% endif %}
                                     </a>
                                 </th>
@@ -59,15 +65,18 @@
                             </thead>
                             <tbody>
                             {% for task in tasks %}
-                            <tr onclick="window.location.href='{{ url_for('view_task', task_id=task.id) }}'" style="cursor:pointer;">
+                            <tr onclick="window.location.href='{{ url_for('view_task', task_id=task.id) }}'"
+                                style="cursor:pointer;">
                                 <td>{{ task.id }}</td>
-                                <td class="utc-time" data-utc-time="{{ task.time_updated.isoformat() }}">{{ task.time_updated.strftime('%d.%m.%y %H:%M') }}</td>
+                                <td class="utc-time" data-utc-time="{{ task.time_updated.isoformat() }}">{{
+                                    task.time_updated.strftime('%d.%m.%y %H:%M') }}
+                                </td>
                                 <td>{{ task.description }}</td>
                                 <td>{{ task.task_type.name }}</td>
                                 <td>{{ task.object.name }}</td>
                                 <td>{{ task.supplier.first_name }} {{ task.supplier.last_name }}</td>
-                                <td>{{ task.executor.first_name }} {{ task.executor.last_name }}</td>
                                 <td>{{ task.supervisor.first_name }} {{ task.supervisor.last_name }}</td>
+                                <td>{{ task.executor.first_name }} {{ task.executor.last_name }}</td>
                                 <td>{{ task.status.value }}</td>
                             </tr>
                             {% endfor %}
@@ -91,7 +100,8 @@
         {% for p in range(1, (total // page_size) + 2) %}
         <li class="page-item {% if p == page %}active{% endif %}">
             <a class="page-link"
-               href="?status_filter={{ status_filter }}&sort_column={{ sort_column }}&sort_order={{ sort_order }}&page={{ p }}&page_size={{ page_size }}">{{ p }}</a>
+               href="?status_filter={{ status_filter }}&sort_column={{ sort_column }}&sort_order={{ sort_order }}&page={{ p }}&page_size={{ page_size }}">{{
+                p }}</a>
         </li>
         {% endfor %}
         {% if page * page_size < total %}
