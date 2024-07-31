@@ -33,7 +33,7 @@
             :: Статус "{{ Statuses[comment.previous_status].value }}" <i class="bi bi-arrow-right"/></i> "{{
             Statuses[comment.new_status].value }}"
             {% elif comment.type == CommentType.date_change %}
-            :: Срок "{{ comment.old_date.strftime('%d.%m.%Y') }}" <i class="bi bi-arrow-right"/></i> "{{
+            :: Срок до "{{ comment.old_date.strftime('%d.%m.%Y') }}" <i class="bi bi-arrow-right"/></i> "{{
             comment.new_date.strftime('%d.%m.%Y') }}"
             ({% set diff = (comment.new_date - comment.old_date).days %}{% if diff > 0 %}+{% endif %}{{ diff }} дн.)
             {% elif comment.type == CommentType.user_change %}

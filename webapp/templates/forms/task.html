@@ -58,7 +58,7 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="initial_plan_date" class="form-label">Плановая дата начала</label>
+                        <label for="initial_plan_date" class="form-label">Срок исполнения</label>
                         <input type="date" class="form-control" id="initial_plan_date" name="initial_plan_date" value="{{ form_data.initial_plan_date }}" required>
                     </div>
                     <button type="submit" class="btn btn-secondary" name="status" value="draft" {% if form_data.status == 'draft' %}selected{% endif %}>Сохранить черновик</button>
