@@ -44,6 +44,7 @@ async def edit_user(request: Request, user_id: int = None, db: AsyncSession = De
     return templates.TemplateResponse("forms/user.html", {"request": request, "user": user})
 
 
+@router.post("/profile", response_class=HTMLResponse)
 @router.post("/{user_id}/edit", response_class=HTMLResponse)
 async def save_user(request: Request, user_id: int = None, db: AsyncSession = Depends(get_db)):
     current_user = request.state.user
