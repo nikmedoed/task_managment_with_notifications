@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
 from webapp.deps import templates
 
 # Расширенный словарь сопоставления кодов ошибок с русскими описаниями и заголовками
@@ -28,6 +29,10 @@ ERROR_MESSAGES = {
     409: {
         "title": "Конфликт",
         "detailed": "Запрос не может быть выполнен из-за конфликта с текущим состоянием ресурса. Повторите попытку позже или обратитесь к разработчику."
+    },
+    413: {
+        "title": "Слишком большой запрос",
+        "detailed": "Запрос, который вы отправили, слишком большой для обработки сервером."
     },
     422: {
         "title": "Ошибка валидации данных",
@@ -95,6 +100,29 @@ def error_handlers(app: FastAPI):
                             status.HTTP_422_UNPROCESSABLE_ENTITY,
                             error_info["detailed"],
                             extra_detail=str(exc.errors()),
+                            title=error_info["title"])
+
+    @app.exception_handler(Exception)
+    async def general_exception_handler(request: Request, exc: Exception):
+        error_info = ERROR_MESSAGES.get(500, {
+            "title": "Внутренняя ошибка сервера",
+            "detailed": "Произошла ошибка на сервере. Повторите попытку позже. Если проблема сохраняется, обратитесь к разработчику."
+        })
+        return error_render(request,
+                            status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            error_info["detailed"],
+                            extra_detail=str(exc),
+                            title=error_info["title"])
+
+    @app.get("/error")
+    async def custom_error_handler(request: Request, status_code: int):
+        error_info = ERROR_MESSAGES.get(status_code, {
+            "title": "Неописанная ошибка",
+            "detailed": "Неописанная ошибка, обратитесь к разработчику, если повторяется"
+        })
+        return error_render(request,
+                            status_code,
+                            error_info["detailed"],
                             title=error_info["title"])
 
 
