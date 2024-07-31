@@ -18,7 +18,7 @@ class User(BaseModel):
     last_name: str = Column(String(100), nullable=False)
     first_name: str = Column(String(100), nullable=False)
     middle_name: str = Column(String(100), nullable=True)
-    email: str = Column(String(100), nullable=True, unique=True)
+    email: str = Column(String(100), nullable=True)
     phone_number: str = Column(String(15), nullable=True)
     telegram_nick: str = Column(String(50), nullable=True)
     telegram_id: int = Column(Integer, nullable=False, unique=True, index=True)
