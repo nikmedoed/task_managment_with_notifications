@@ -22,7 +22,9 @@ class RedisTokenManager(redis.Redis):
                            self.jwt_secret_key)
         await self.set(f"{COOKIE_AUTH}:{key}:{user_id}:{device_id}", token, ex=REDIS_TTL)
         if response:
-            response.set_cookie(key=COOKIE_AUTH, value=token, max_age=REDIS_TTL, secure=True, httponly=True)
+            response.set_cookie(key=COOKIE_AUTH, value=token, max_age=REDIS_TTL,
+                                # secure=True,
+                                httponly=True)
         return token
 
     # стоит продумать польностью логику, чтобы использовать tgid локально при регистрации,
