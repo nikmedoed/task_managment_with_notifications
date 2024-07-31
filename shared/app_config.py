@@ -11,7 +11,6 @@ load_dotenv(DOTENV_PATH)
 
 
 class DatabaseConfig(BaseSettings):
-    root_password: str
     database: str
     user: str
     password: str
