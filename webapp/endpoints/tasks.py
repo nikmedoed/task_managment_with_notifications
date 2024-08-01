@@ -163,12 +163,19 @@ async def view_task(request: Request, task_id: int, db: AsyncSession = Depends(g
 
 @router.post("/{task_id}/plan_date", response_class=HTMLResponse)
 async def update_plan_date(
-        request: Request, task_id: int, new_plan_date: date = Form(...),
+        request: Request, task_id: int,
+        new_plan_date: date = Form(...),
+        executor_comment: Optional[str] = Form(None),
         db: AsyncSession = Depends(get_db)
 ):
     task = await db.get(Task, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Задача не найдена")
+
+    if UserRole.EXECUTOR in get_user_roles(request.state.user, task):
+        if not executor_comment:
+            raise HTTPException(status_code=400, detail="Комментарий обязателен для изменения даты исполнителем")
+
     old_plan_date = task.actual_plan_date
     task.actual_plan_date = new_plan_date
     task.reschedule_count += 1
@@ -179,7 +186,8 @@ async def update_plan_date(
         user_id=request.state.user.id,
         author_roles=list(get_user_roles(request.state.user, task)),
         old_date=old_plan_date,
-        new_date=task.actual_plan_date
+        new_date=task.actual_plan_date,
+        content=executor_comment or ""
     )
     db.add(new_comment)
     await db.commit()
