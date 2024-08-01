@@ -90,8 +90,8 @@
 
             </div>
             <div class="card-footer">
-                Создано: {{ task.time_created.strftime('%d.%m.%Y') }}, обновлено: {{
-                task.time_updated.strftime('%d.%m.%Y') }}
+                Создано: {{ task.time_created.strftime('%d.%m.%Y %H:%m') }}, обновлено: {{
+                task.time_updated.strftime('%d.%m.%Y %H:%m') }}
             </div>
         </div>
 
@@ -137,7 +137,8 @@
                 <form id="updateDateForm" action="{{ url_for('update_plan_date', task_id=task.id) }}" method="post">
                     <div class="mb-3">
                         <label for="new_plan_date_modal" class="form-label">Новая плановая дата</label>
-                        <input type="date" class="form-control" id="new_plan_date_modal" name="new_plan_date" required>
+                        <input type="date" class="form-control" id="new_plan_date_modal" name="new_plan_date"
+                               value="{{ task.actual_plan_date.strftime('%Y-%m-%d') }}" required>
                     </div>
                 </form>
             </div>
@@ -148,6 +149,7 @@
         </div>
     </div>
 </div>
+
 {% if is_supplier %}
 <!-- Модальное окно для изменения исполнителя -->
 <div class="modal fade" id="updateExecutorModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">

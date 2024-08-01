@@ -3,11 +3,13 @@ import inspect
 import os
 import urllib.parse
 
+import pytz
 from fastapi import FastAPI, Request, Depends
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from fastapi.responses import HTMLResponse, RedirectResponse
+
 import webapp.filters
 from database import async_dbsession
 from database.models import User
@@ -63,8 +65,10 @@ def create_app() -> FastAPI:
             for args in generate_static():
                 generate_static_template(*args)
 
-    app.mount("/static/vendor", StaticFiles(directory=os.path.join(BASE_DIR, "../webapp_theme_static/vendor")), name="uploads")
-    app.mount("/static/css", StaticFiles(directory=os.path.join(BASE_DIR, "../webapp_theme_static/css")), name="uploads")
+    app.mount("/static/vendor", StaticFiles(directory=os.path.join(BASE_DIR, "../webapp_theme_static/vendor")),
+              name="uploads")
+    app.mount("/static/css", StaticFiles(directory=os.path.join(BASE_DIR, "../webapp_theme_static/css")),
+              name="uploads")
     app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
     def restricted(path) -> bool:
@@ -95,6 +99,14 @@ def create_app() -> FastAPI:
             if not user.verificated:
                 return render_unverificated(request)
             request.state.user = user
+
+        timezone = request.headers.get('X-Timezone', 'UTC')
+        try:
+            pytz.timezone(timezone)
+        except pytz.UnknownTimeZoneError:
+            timezone = 'UTC'
+        request.state.timezone = timezone
+
         request.state.title = modules.get(request.url.path.strip("/").split("/", 1)[0], {}).get('name', "")
 
         response = await call_next(request)

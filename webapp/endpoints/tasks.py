@@ -89,6 +89,7 @@ async def create_task(
 @router.get("", response_class=HTMLResponse)
 async def list_tasks(request: Request, db: AsyncSession = Depends(get_db)):
     user = request.state.user
+    user_tz = request.state.timezone
 
     base_query = select(Task).options(
         joinedload(Task.task_type),

@@ -1,7 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
   handleHashChange();
   initializeTabs();
-  formatUTCTime();
   setupSidebarToggle();
   setupSearchBarToggle();
   handleNavbarLinksActiveStateOnScroll();
@@ -28,24 +27,6 @@ function initializeTabs() {
     tabLink.addEventListener("shown.bs.tab", event => {
       history.replaceState(null, null, event.target.getAttribute("href"));
     });
-  });
-}
-
-function formatUTCTime() {
-  document.querySelectorAll(".utc-time").forEach(element => {
-    const utcTime = element.getAttribute("data-utc-time");
-    const date = new Date(`${utcTime}Z`);
-    const options = {
-      year: "2-digit",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    };
-    const formatter = new Intl.DateTimeFormat("ru-RU", options);
-    const formattedTime = formatter.format(date).replace(",", "");
-    element.textContent = formattedTime;
   });
 }
 
