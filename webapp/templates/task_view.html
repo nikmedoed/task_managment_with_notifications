@@ -68,8 +68,18 @@
                     </tr>
                     </tbody>
                 </table>
-                {% if is_supplier %}
+
+                {% if is_supplier or available_statuses %}
                 <div class="d-flex justify-content-end">
+                    {% if available_statuses %}
+
+                    <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal"
+                            data-bs-target="#statusModal">
+                        <i class="bi bi-box-arrow-in-up-right"></i> Сменить статус
+                    </button>
+                    {% endif %}
+
+                    {% if is_supplier %}    
                     {% if task.status == Statuses.CANCELED %}
                     <form action="{{ url_for('update_task_status', task_id=task.id) }}" method="post"
                           class="d-inline me-2">
@@ -89,6 +99,8 @@
                         <button type="submit" class="btn btn-secondary">Отменить и пересоздать</button>
                     </form>
                     {% endif %}
+                    {% endif %}
+
                 </div>
                 {% endif %}
 
@@ -147,7 +159,7 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Не менять</button>
                 <button type="submit" class="btn btn-primary" form="updateDateForm">Сохранить</button>
             </div>
         </div>
@@ -170,15 +182,14 @@
                         <label for="new_executor_id" class="form-label">Новый исполнитель</label>
                         <select class="form-control" id="new_executor_id" name="new_user_id" required>
                             {% for user in users %}
-                            <option value="{{ user.id }}">{{ user.full_name }} – {{ user.position }}
-                            </option>
+                            <option value="{{ user.id }}">{{ user.full_name }} – {{ user.position }}</option>
                             {% endfor %}
                         </select>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Не менять</button>
                 <button type="submit" class="btn btn-primary" form="updateExecutorForm">Сохранить</button>
             </div>
         </div>
@@ -195,20 +206,20 @@
             </div>
             <div class="modal-body">
                 <form id="updateSupervisorForm"
-                      action="{{ url_for('update_role', task_id=task.id, role='supervisor') }}" method="post">
+                      action="{{ url_for('update_role', task_id=task.id, role='supervisor') }}"
+                      method="post">
                     <div class="mb-3">
                         <label for="new_supervisor_id" class="form-label">Новый руководитель</label>
                         <select class="form-control" id="new_supervisor_id" name="new_user_id" required>
                             {% for user in users %}
-                            <option value="{{ user.id }}">{{ user.full_name }} – {{ user.position }}
-                            </option>
+                            <option value="{{ user.id }}">{{ user.full_name }} – {{ user.position }}</option>
                             {% endfor %}
                         </select>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Не менять</button>
                 <button type="submit" class="btn btn-primary" form="updateSupervisorForm">Сохранить</button>
             </div>
         </div>
@@ -224,26 +235,38 @@
                 <h5 class="modal-title">Изменить статус</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <form id="updateStatusForm" action="{{ url_for('update_task_status', task_id=task.id) }}" method="post">
+            <form id="updateStatusForm" action="{{ url_for('update_task_status', task_id=task.id) }}" method="post">
+                <div class="modal-body">
                     <div class="mb-3">
                         <label for="status_comment" class="form-label">Комментарий</label>
                         <textarea class="form-control" id="status_comment" name="status_comment" rows="3"></textarea>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                        {% for status, label in available_statuses.items() %}
-                        <button type="button" class="btn btn-primary" data-status="{{ status }}"
-                                onclick="submitStatusForm('{{ status }}')">{{ label }}
-                        </button>
-                        {% endfor %}
-                    </div>
-                </form>
-            </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Не менять</button>
+                    {% for status, label in available_statuses.items() %}
+                    <button type="button" class="btn btn-primary" data-status="{{ status }}"
+                            onclick="submitStatusForm('{{ status }}')">{{ label }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </form>
         </div>
     </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
+<script>
+    function submitStatusForm(status) {
+        var form = document.getElementById('updateStatusForm');
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'new_status';
+        input.value = status;
+        form.appendChild(input);
+        form.submit();
+    }
+</script>
 {% endblock %}
