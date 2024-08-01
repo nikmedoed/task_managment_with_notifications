@@ -81,6 +81,7 @@ class TaskCreate(BaseModel):
     executor_id: int
     initial_plan_date: datetime
     description: str
+    important: bool
     actual_plan_date: datetime = Field(None)
 
     @field_validator('status')

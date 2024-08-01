@@ -10,6 +10,10 @@
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">{{ task.description }}</h5>
+                {% if task.important %}
+                <p><span class="badge bg-warning text-dark"><i
+                        class="bi bi-exclamation-triangle me-1"></i> Важная</span></p>
+                {% endif %}
                 <p><strong>Объект:</strong> {{ task.object.name }}</p>
                 <p>
                     <strong>Статус:</strong> {{ task.status.value }}

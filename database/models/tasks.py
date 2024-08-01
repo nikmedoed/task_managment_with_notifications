@@ -2,11 +2,11 @@ from datetime import datetime
 from typing import List, TYPE_CHECKING
 
 import pytz
-from sqlalchemy import Column, Integer, ForeignKey, DateTime, Text, Enum as SQLAlchemyEnum, select
+from sqlalchemy import (Column, Integer, ForeignKey, DateTime, Text,
+                        Enum as SQLAlchemyEnum, select, Boolean)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, aliased
-
 from ._base import BaseModel
 from .statuses import (Statuses, COMPLETED_STATUSES, SUPERVISOR_STATUSES, EXECUTOR_STATUSES, SUPPLIER_STATUSES,
                        is_valid_transition)
@@ -36,6 +36,7 @@ class Task(BaseModel):
     rework_count: int = Column(Integer, default=0, nullable=False)
     reschedule_count: int = Column(Integer, default=0, nullable=False)
     notification_count: int = Column(Integer, default=0, nullable=False)
+    important: bool = Column(Boolean, nullable=False, default=False)
 
     task_type: 'TaskType' = relationship('TaskType')
     object: 'Object' = relationship('Object', back_populates='tasks')

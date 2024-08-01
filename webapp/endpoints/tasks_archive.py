@@ -35,21 +35,27 @@ async def task_archive(
 
     base_query = select(Task).options(
         joinedload(Task.task_type),
-        joinedload(Task.object),
-        joinedload(Task.supplier),
-        joinedload(Task.executor),
-        joinedload(Task.supervisor)
+        joinedload(Task.object)
     )
+
+    count_query = select(func.count(Task.id))
 
     if status_filter == 'active':
         base_query = base_query.filter(~Task.status.in_(COMPLETED_STATUSES))
+        count_query = count_query.filter(~Task.status.in_(COMPLETED_STATUSES))
     elif status_filter == 'completed':
         base_query = base_query.filter(Task.status.in_(COMPLETED_STATUSES))
+        count_query = count_query.filter(Task.status.in_(COMPLETED_STATUSES))
+    elif status_filter == 'important':
+        base_query = base_query.filter(Task.important == True)
+        count_query = count_query.filter(Task.important == True)
 
     if sort_order == 'desc':
         base_query = base_query.order_by(sort_column.desc())
     else:
         base_query = base_query.order_by(sort_column.asc())
+
+    total = await db.scalar(count_query)
 
     base_query = base_query.offset(offset).limit(page_size)
     result = await db.execute(base_query)
@@ -58,9 +64,7 @@ async def task_archive(
     total_all = await db.scalar(select(func.count(Task.id)))
     total_active = await db.scalar(select(func.count(Task.id)).filter(~Task.status.in_(COMPLETED_STATUSES)))
     total_completed = await db.scalar(select(func.count(Task.id)).filter(Task.status.in_(COMPLETED_STATUSES)))
-
-    count_query = select(func.count(Task.id))
-    total = (await db.execute(count_query)).scalar()
+    total_important = await db.scalar(select(func.count(Task.id)).filter(Task.important == True))
 
     return templates.TemplateResponse("tasks_archive.html", {
         "request": request,
@@ -73,7 +77,8 @@ async def task_archive(
         "total": total,
         "total_all": total_all,
         "total_active": total_active,
-        "total_completed": total_completed
+        "total_completed": total_completed,
+        "total_important": total_important
     })
 
 
@@ -81,6 +86,7 @@ TABLE_EXPORT_COLUMNS = OrderedDict([
     ('id', 'ID'),
     ('task_type.name', 'Тип задачи'),
     ('status.value', 'Статус'),
+    ('important', 'Важная'),
     ('object.name', 'Объект'),
     ('supplier.full_name', 'Поставщик'),
     ('supervisor.full_name', 'Руководитель'),

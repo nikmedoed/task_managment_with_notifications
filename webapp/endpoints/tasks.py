@@ -50,6 +50,7 @@ async def create_task(
         initial_plan_date: date = Form(...),
         description: str = Form(...),
         status: str = Form(...),
+        important: bool = Form(False),
         db: AsyncSession = Depends(get_db)
 ):
     user = request.state.user
@@ -63,7 +64,8 @@ async def create_task(
         "supervisor_id": supervisor_id,
         "executor_id": executor_id,
         "initial_plan_date": datetime.combine(initial_plan_date, datetime.min.time()),
-        "description": description
+        "description": description,
+        "important": important
     }
 
     try:

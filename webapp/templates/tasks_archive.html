@@ -1,6 +1,11 @@
 {% extends "blank.html" %}
 
 {% block content %}
+<style>
+    .sortable-header {
+        white-space: nowrap;
+    }
+</style>
 <div class="row">
     <div class="col-lg-12">
         <div class="d-flex justify-content-end mt-3">
@@ -9,25 +14,20 @@
             </a>
         </div>
         <ul class="nav nav-tabs" id="myTab" role="tablist">
+            {% set tabs = {
+                'all': {'name': 'Все', 'count': total_all},
+                'active': {'name': 'Активные', 'count': total_active},
+                'completed': {'name': 'Завершенные', 'count': total_completed},
+                'important': {'name': 'Важные', 'count': total_important}
+            } %}
+            {% for tab, data in tabs.items() %}
             <li class="nav-item" role="presentation">
-                <a href="?status_filter=all&page={{ page }}&page_size={{ page_size }}"
-                   class="nav-link {% if status_filter == 'all' %}active{% endif %}" id="all-tab" role="tab">
-                    Все ({{ total_all }})
+                <a href="?status_filter={{ tab }}&page=1&page_size={{ page_size }}"
+                   class="nav-link {% if status_filter == tab %}active{% endif %}" id="{{ tab }}-tab" role="tab">
+                    {{ data.name }} ({{ data.count }})
                 </a>
             </li>
-            <li class="nav-item" role="presentation">
-                <a href="?status_filter=active&page={{ page }}&page_size={{ page_size }}"
-                   class="nav-link {% if status_filter == 'active' %}active{% endif %}" id="active-tab" role="tab">
-                    Активные ({{ total_active }})
-                </a>
-            </li>
-            <li class="nav-item" role="presentation">
-                <a href="?status_filter=completed&page={{ page }}&page_size={{ page_size }}"
-                   class="nav-link {% if status_filter == 'completed' %}active{% endif %}" id="completed-tab"
-                   role="tab">
-                    Завершенные ({{ total_completed }})
-                </a>
-            </li>
+            {% endfor %}
         </ul>
         <div class="card">
             <div class="card-body">
@@ -36,6 +36,7 @@
                         <table id="tasksTable" class="table table-hover">
                             <thead>
                             <tr>
+                                <th></th>
                                 {% for column, display_name in {
                                 'id': 'ID',
                                 'time_updated': 'Дата изменения',
@@ -48,14 +49,14 @@
                                 'status': 'Статус'
                                 }.items() %}
                                 <th>
-                                    <a href="?status_filter={{ status_filter }}&sort_column={{ column }}&sort_order={% if sort_column == column and sort_order == 'asc' %}desc{% else %}asc{% endif %}&page={{ page }}&page_size={{ page_size }}">
-                                        {{ display_name }}
+                                    <a href="?status_filter={{ status_filter }}&sort_column={{ column }}&sort_order={% if sort_column == column and sort_order == 'asc' %}desc{% else %}asc{% endif %}&page={{ page }}&page_size={{ page_size }}" class="sortable-header">
                                         {% if sort_column == column %}
                                         {% if sort_order == 'asc' %}
-                                        <i class="bi bi-arrow-up"></i>
+                                        {{ display_name }}<i class="bi bi-arrow-up"></i>
                                         {% else %}
-                                        <i class="bi bi-arrow-down"></i>
+                                        {{ display_name }}<i class="bi bi-arrow-down"></i>
                                         {% endif %}
+                                        {% else %}{{ display_name }}
                                         {% endif %}
                                     </a>
                                 </th>
@@ -67,6 +68,10 @@
                             <tr onclick="window.location.href='{{ url_for('view_task', task_id=task.id) }}'"
                                 style="cursor:pointer;"
                                 class="{% if task.is_active %} {% if task.days_remain < 0 %}table-danger{% elif task.days_remain <= 3 %}table-warning{% endif %}{% endif %}">
+                                <td>{% if task.important %}
+                                    <i class="bi bi-exclamation-lg text-danger"></i>
+                                    {% endif %}
+                                </td>
                                 <td>{{ task.id }}</td>
                                 <td class="utc-time" data-utc-time="{{ task.time_updated.isoformat() }}">
                                     {{ task.time_updated.strftime('%d.%m.%y %H:%M') }}
@@ -97,11 +102,10 @@
                href="?status_filter={{ status_filter }}&sort_column={{ sort_column }}&sort_order={{ sort_order }}&page={{ page - 1 }}&page_size={{ page_size }}">Previous</a>
         </li>
         {% endif %}
-        {% for p in range(1, (total // page_size) + 2) %}
+        {% for p in range(1, (total + page_size - 1) // page_size + 1) %}
         <li class="page-item {% if p == page %}active{% endif %}">
             <a class="page-link"
-               href="?status_filter={{ status_filter }}&sort_column={{ sort_column }}&sort_order={{ sort_order }}&page={{ p }}&page_size={{ page_size }}">{{
-                p }}</a>
+               href="?status_filter={{ status_filter }}&sort_column={{ sort_column }}&sort_order={{ sort_order }}&page={{ p }}&page_size={{ page_size }}">{{ p }}</a>
         </li>
         {% endfor %}
         {% if page * page_size < total %}
