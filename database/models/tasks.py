@@ -57,6 +57,12 @@ class Task(BaseModel):
             self.actual_plan_date = self.initial_plan_date
 
     @hybrid_property
+    def plan_date_shift(self):
+        if self.actual_plan_date and self.initial_plan_date:
+            return (self.actual_plan_date - self.initial_plan_date).days
+        return 0
+
+    @hybrid_property
     def days_remain(self):
         if self.actual_plan_date:
             delta = self.actual_plan_date.astimezone(pytz.UTC) - datetime.now(pytz.UTC)

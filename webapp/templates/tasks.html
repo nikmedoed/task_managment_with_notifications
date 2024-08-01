@@ -50,8 +50,8 @@
                         <td class="text-end">{{ task.reschedule_count }}</td>
                         <td class="text-end">{{ task.rework_count }}</td>
                         <td class="text-end">{{ task.notification_count }}</td>
-                        <td>{{ task.supervisor.first_name }} {{ task.supervisor.last_name }}</td>
-                        <td>{{ task.executor.first_name }} {{ task.executor.last_name }}</td>
+                        <td>{{ task.supervisor.name }}</td>
+                        <td>{{ task.executor.name }}</td>
                     </tr>
                     {% endfor %}
                     </tbody>
@@ -95,7 +95,7 @@
                         <td class="text-end">{{ task.reschedule_count }}</td>
                         <td class="text-end">{{ task.rework_count }}</td>
                         <td class="text-end">{{ task.notification_count }}</td>
-                        <td>{{ task.executor.first_name }} {{ task.executor.last_name }}</td>
+                        <td>{{ task.executor.name }}</td>
                     </tr>
                     {% endfor %}
                     </tbody>
@@ -139,7 +139,7 @@
                         <td class="text-end">{{ task.reschedule_count }}</td>
                         <td class="text-end">{{ task.rework_count }}</td>
                         <td class="text-end">{{ task.notification_count }}</td>
-                        <td>{{ task.supplier.first_name }} {{ task.supplier.last_name }}</td>
+                        <td>{{ task.supplier.name }}</td>
                     </tr>
                     {% endfor %}
                     </tbody>

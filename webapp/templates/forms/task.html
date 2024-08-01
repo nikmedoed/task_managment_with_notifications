@@ -44,7 +44,7 @@
                         <select class="form-control" id="supervisor_id" name="supervisor_id" required>
                             <option value="" {% if not form_data.supervisor_id %}selected{% endif %}>Выберите сотрудника</option>
                             {% for user in users %}
-                            <option value="{{ user.id }}" {% if user.id == form_data.supervisor_id %}selected{% endif %}>{{ user.last_name }} {{ user.first_name }} - {{ user.position }}</option>
+                            <option value="{{ user.id }}" {% if user.id == form_data.supervisor_id %}selected{% endif %}>{{ user.name }} - {{ user.position }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -53,7 +53,7 @@
                         <select class="form-control" id="executor_id" name="executor_id">
                             <option value="" {% if not form_data.executor_id %}selected{% endif %}>Выберите сотрудника</option>
                             {% for user in users %}
-                            <option value="{{ user.id }}" {% if user.id == form_data.executor_id %}selected{% endif %}>{{ user.last_name }} {{ user.first_name }} - {{ user.position }}</option>
+                            <option value="{{ user.id }}" {% if user.id == form_data.executor_id %}selected{% endif %}>{{ user.name }} - {{ user.position }}</option>
                             {% endfor %}
                         </select>
                     </div>

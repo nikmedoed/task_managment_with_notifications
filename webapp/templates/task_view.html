@@ -2,8 +2,7 @@
 
 {% block content %}
 <p class="lead">
-    <strong>Постановщик:</strong> {{ task.supplier.last_name }} {{ task.supplier.first_name }} {{
-    task.supplier.middle_name }} – {{ task.supplier.position }}
+    <strong>Постановщик:</strong> {{ task.supplier.full_name }} – {{ task.supplier.position }}
 </p>
 <div class="row">
     <!-- Основные данные по задаче -->
@@ -26,15 +25,13 @@
                     {{ task.actual_plan_date.strftime('%d.%m.%Y') }}
                     {% else %}
                     {{ task.actual_plan_date.strftime('%d.%m.%Y') }} (план {{
-                    task.initial_plan_date.strftime('%d.%m.%Y') }} {{ ' {:+}д.'.format((task.actual_plan_date -
-                    task.initial_plan_date).days) }})
+                    task.initial_plan_date.strftime('%d.%m.%Y') }} {{ ' {:+}д.'.format(task.plan_date_shift) }})
                     {% endif %}
                     <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#updateDateModal">
                         <i class="bi bi-pencil-square"></i>
                     </a>
                 </p>
-                <p><strong>Руководитель:</strong> {{ task.supervisor.last_name }} {{ task.supervisor.first_name }} {{
-                    task.supervisor.middle_name }} – {{ task.supervisor.position }}
+                <p><strong>Руководитель:</strong> {{ task.supervisor.full_name }} – {{ task.supervisor.position }}
                     {% if is_supplier %}
                     <a href="#" class="text-decoration-none" data-bs-toggle="modal"
                        data-bs-target="#updateSupervisorModal">
@@ -42,8 +39,7 @@
                     </a>
                     {% endif %}
                 </p>
-                <p><strong>Исполнитель:</strong> {{ task.executor.last_name }} {{ task.executor.first_name }} {{
-                    task.executor.middle_name }} – {{ task.executor.position }}
+                <p><strong>Исполнитель:</strong> {{ task.executor.full_name }} – {{ task.executor.position }}
                     {% if is_supplier %}
                     <a href="#" class="text-decoration-none" data-bs-toggle="modal"
                        data-bs-target="#updateExecutorModal">
@@ -168,8 +164,7 @@
                         <label for="new_executor_id" class="form-label">Новый исполнитель</label>
                         <select class="form-control" id="new_executor_id" name="new_user_id" required>
                             {% for user in users %}
-                            <option value="{{ user.id }}">{{ user.last_name }} {{ user.first_name }} {{ user.middle_name
-                                }} – {{ user.position }}
+                            <option value="{{ user.id }}">{{ user.full_name }} – {{ user.position }}
                             </option>
                             {% endfor %}
                         </select>
@@ -199,8 +194,7 @@
                         <label for="new_supervisor_id" class="form-label">Новый руководитель</label>
                         <select class="form-control" id="new_supervisor_id" name="new_user_id" required>
                             {% for user in users %}
-                            <option value="{{ user.id }}">{{ user.last_name }} {{ user.first_name }} {{ user.middle_name
-                                }} – {{ user.position }}
+                            <option value="{{ user.id }}">{{ user.full_name }} – {{ user.position }}
                             </option>
                             {% endfor %}
                         </select>

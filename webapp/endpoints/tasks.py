@@ -262,12 +262,12 @@ async def update_role(
                 "role": role,
                 "old_user": {
                     "id": old_user.id,
-                    "name": f"{old_user.last_name} {old_user.first_name} {old_user.middle_name}",
+                    "name": old_user.full_name,
                     "position": old_user.position
                 },
                 "new_user": {
                     "id": new_user.id,
-                    "name": f"{new_user.last_name} {new_user.first_name} {new_user.middle_name}",
+                    "name": new_user.full_name,
                     "position": new_user.position
                 }
             }

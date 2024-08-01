@@ -29,7 +29,7 @@
                     {% for user in unverified_users %}
                     <tr>
                         <th scope="row">{{ loop.index }}</th>
-                        <td>{{ user.last_name }} {{ user.first_name }} {{ user.middle_name }}</td>
+                        <td>{{ user.full_name }}</td>
                         <td>
                             {% if user.email %}
                             <a href="mailto:{{ user.email }}">{{ user.email }}</a>
@@ -100,7 +100,7 @@
                     <tbody>
                     {% for user in users %}
                     <tr>
-                        <td>{{ user.last_name }} {{ user.first_name }} {{ user.middle_name }}</td>
+                        <td>{{ user.full_name }}</td>
                         <td>
                             {% if user.email %}
                             <a href="mailto:{{ user.email }}">{{ user.email }}</a>

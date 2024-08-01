@@ -1,6 +1,7 @@
 from typing import List, TYPE_CHECKING
 
 from sqlalchemy import Column, String, Integer, Boolean
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
 from ._base import BaseModel
@@ -47,3 +48,17 @@ class User(BaseModel):
 
     comments: List['Comment'] = relationship('Comment', back_populates='user', order_by='Comment.id')
     documents: List['Document'] = relationship('Document', back_populates='author', order_by='Document.id')
+
+    @hybrid_property
+    def name(self):
+        return f"{self.first_name} {self.last_name}"
+
+    @hybrid_property
+    def full_name(self):
+        middle = f" {self.middle_name}" if self.middle_name else ""
+        return f"{self.last_name} {self.first_name}{middle}"
+
+    @hybrid_property
+    def short_name(self):
+        middle_initial = f" {self.middle_name[0]}." if self.middle_name else ""
+        return f"{self.last_name} {self.first_name[0]}.{middle_initial}"

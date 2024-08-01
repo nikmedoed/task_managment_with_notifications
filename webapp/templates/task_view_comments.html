@@ -18,7 +18,7 @@
 
         {% if comment.user %}
         <strong data-bs-toggle="tooltip" data-bs-placement="top" data-bs-original-title="{{ comment.user.position }}">
-            {{ comment.user.last_name }} {{ comment.user.first_name[0] }}. {{ comment.user.middle_name[0] }}.
+            {{ comment.user.short_name }}
         </strong>
         {% if comment.author_roles %}
         <small>({{ comment.author_roles|join(', ') }})</small>

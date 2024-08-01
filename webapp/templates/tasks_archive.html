@@ -36,7 +36,17 @@
                         <table id="tasksTable" class="table table-hover">
                             <thead>
                             <tr>
-                                {% for column, display_name in column_names.items() %}
+                                {% for column, display_name in {
+                                'id': 'ID',
+                                'time_updated': 'Дата изменения',
+                                'description': 'Описание',
+                                'task_type_id': 'Тип',
+                                'object_id': 'Объект',
+                                'supplier_id': 'Постановщик',
+                                'supervisor_id': 'Руководитель',
+                                'executor_id': 'Исполнитель',
+                                'status': 'Статус'
+                                }.items() %}
                                 <th>
                                     <a href="?status_filter={{ status_filter }}&sort_column={{ column }}&sort_order={% if sort_column == column and sort_order == 'asc' %}desc{% else %}asc{% endif %}&page={{ page }}&page_size={{ page_size }}">
                                         {{ display_name }}
@@ -64,9 +74,9 @@
                                 <td>{{ task.description }}</td>
                                 <td>{{ task.task_type.name }}</td>
                                 <td>{{ task.object.name }}</td>
-                                <td>{{ task.supplier.first_name }} {{ task.supplier.last_name }}</td>
-                                <td>{{ task.supervisor.first_name }} {{ task.supervisor.last_name }}</td>
-                                <td>{{ task.executor.first_name }} {{ task.executor.last_name }}</td>
+                                <td>{{ task.supplier.name }}</td>
+                                <td>{{ task.supervisor.name }}</td>
+                                <td>{{ task.executor.name }}</td>
                                 <td>{{ task.status.value }}</td>
                             </tr>
                             {% endfor %}
