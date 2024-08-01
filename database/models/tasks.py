@@ -1,5 +1,7 @@
+from datetime import datetime
 from typing import List, TYPE_CHECKING
 
+import pytz
 from sqlalchemy import Column, Integer, ForeignKey, DateTime, Text, Enum as SQLAlchemyEnum, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -27,9 +29,9 @@ class Task(BaseModel):
     supplier_id: int = Column(Integer, ForeignKey('users.id'), nullable=False)
     supervisor_id: int = Column(Integer, ForeignKey('users.id'), nullable=False)
     executor_id: int = Column(Integer, ForeignKey('users.id'), nullable=False)
-    initial_plan_date: DateTime = Column(DateTime(timezone=True), nullable=False)
-    actual_plan_date: DateTime = Column(DateTime(timezone=True), nullable=False)
-    last_notification_date: DateTime = Column(DateTime(timezone=True), nullable=True)
+    initial_plan_date: datetime = Column(DateTime(timezone=True), nullable=False)
+    actual_plan_date: datetime = Column(DateTime(timezone=True), nullable=False)
+    last_notification_date: datetime = Column(DateTime(timezone=True), nullable=True)
     description: str = Column(Text, nullable=False)
     rework_count: int = Column(Integer, default=0, nullable=False)
     reschedule_count: int = Column(Integer, default=0, nullable=False)
@@ -38,19 +40,32 @@ class Task(BaseModel):
     task_type: 'TaskType' = relationship('TaskType')
     object: 'Object' = relationship('Object', back_populates='tasks')
 
-    supplier: 'User' = relationship('User', foreign_keys='Task.supplier_id', back_populates='tasks_as_supplier',
-                                    lazy='joined')
-    supervisor: 'User' = relationship('User', foreign_keys='Task.supervisor_id', back_populates='tasks_as_supervisor',
-                                      lazy='joined')
-    executor: 'User' = relationship('User', foreign_keys='Task.executor_id', back_populates='tasks_as_executor',
-                                    lazy='joined')
-    comments: List['Comment'] = relationship('Comment', back_populates='task', order_by='Comment.id')
-    notifications: List['TaskNotification'] = relationship('TaskNotification', back_populates='task')
+    supplier: 'User' = relationship('User', foreign_keys='Task.supplier_id',
+                                    back_populates='tasks_as_supplier', lazy='joined')
+    supervisor: 'User' = relationship('User', foreign_keys='Task.supervisor_id',
+                                      back_populates='tasks_as_supervisor', lazy='joined')
+    executor: 'User' = relationship('User', foreign_keys='Task.executor_id',
+                                    back_populates='tasks_as_executor', lazy='joined')
+    comments: List['Comment'] = relationship('Comment', back_populates='task',
+                                             order_by='Comment.id')
+    notifications: List['TaskNotification'] = relationship('TaskNotification',
+                                                           back_populates='task')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if not self.actual_plan_date:
             self.actual_plan_date = self.initial_plan_date
+
+    @hybrid_property
+    def days_remain(self):
+        if self.actual_plan_date:
+            delta = self.actual_plan_date.astimezone(pytz.UTC) - datetime.now(pytz.UTC)
+            return delta.days
+        return None
+
+    @hybrid_property
+    def is_active(self):
+        return self.status not in COMPLETED_STATUSES
 
     @classmethod
     def filter_completed(cls):

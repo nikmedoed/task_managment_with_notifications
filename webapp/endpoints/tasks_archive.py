@@ -1,4 +1,3 @@
-# tasks_archive.py
 from io import BytesIO
 
 import openpyxl
@@ -15,6 +14,18 @@ from database.models.statuses import COMPLETED_STATUSES
 from webapp.deps import get_db, templates
 
 router = APIRouter()
+
+COLUMN_INTERFACE = {
+    'id': 'ID',
+    'time_updated': 'Дата изменения',
+    'description': 'Описание',
+    'task_type_id': 'Тип',
+    'object_id': 'Объект',
+    'supplier_id': 'Постановщик',
+    'supervisor_id': 'Руководитель',
+    'executor_id': 'Исполнитель',
+    'status': 'Статус'
+}
 
 
 @router.get("", response_class=HTMLResponse)
@@ -53,7 +64,6 @@ async def task_archive(
     result = await db.execute(base_query)
     tasks = result.scalars().all()
 
-    # Calculate counts for each filter type
     total_all = await db.scalar(select(func.count(Task.id)))
     total_active = await db.scalar(select(func.count(Task.id)).filter(~Task.status.in_(COMPLETED_STATUSES)))
     total_completed = await db.scalar(select(func.count(Task.id)).filter(Task.status.in_(COMPLETED_STATUSES)))
@@ -72,7 +82,8 @@ async def task_archive(
         "total": total,
         "total_all": total_all,
         "total_active": total_active,
-        "total_completed": total_completed
+        "total_completed": total_completed,
+        'column_names': COLUMN_INTERFACE
     })
 
 

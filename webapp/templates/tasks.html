@@ -39,7 +39,8 @@
                     <tbody>
                     {% for task in supplier_tasks %}
                     <tr onclick="window.location.href='{{ url_for('view_task', task_id=task.id) }}'"
-                        style="cursor:pointer;">
+                        style="cursor:pointer;"
+                        class="{% if task.is_active %} {% if task.days_remain < 0 %}table-danger{% elif task.days_remain <= 3 %}table-warning{% endif %}{% endif %}">
                         <td class="text-end">{{ task.id }}</td>
                         <td>{{ task.object.name }}</td>
                         <td>{{ task.task_type.name }}</td>
