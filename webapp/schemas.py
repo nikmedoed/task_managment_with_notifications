@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -93,3 +93,7 @@ class TaskCreate(BaseModel):
     @field_validator('actual_plan_date', mode='before')
     def set_actual_plan_date(cls, value, values):
         return values.get('initial_plan_date')
+
+
+class BulkDeleteRequest(BaseModel):
+    uuids: List[str]

@@ -3,25 +3,49 @@
 {% block content %}
 <div class="row">
     <div class="col-lg-12">
-        <!-- Documents Table -->
+        <div class="row mb-3">
+            <div class="col-lg-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span id="disk-space-info">Свободное место: {{ (disk_space_info.free / (1024**3))|round(2) }} GB из {{ (disk_space_info.total / (1024**3))|round(2) }} GB</span>
+                    <button id="delete-selected" class="btn btn-danger d-none">
+                        <i class="bi bi-trash-fill"></i> Удалить выбранные
+                    </button>
+                </div>
+            </div>
+        </div>
         <div class="card">
+            <!-- Documents Table -->
             <div class="card-body">
                 <table class="table table-hover">
                     <thead>
                     <tr>
+                        <th><input type="checkbox" id="select-all"></th>
                         <th>Дата создания</th>
                         <th>Документ</th>
                         <th>Тип</th>
                         <th>Источник</th>
                         <th>Автор</th>
+                        <th>Действия</th>
                     </tr>
                     </thead>
                     <tbody>
                     {% for document in documents %}
                     <tr>
-                        <td class="utc-time" data-utc-time="{{ document.time_created.isoformat() }}">{{ document.time_created.strftime('%d.%m.%y %H:%M') }}</td>
                         <td>
+                            {% if not document.deleted %}
+                            <input type="checkbox" class="document-checkbox" value="{{ document.uuid }}">
+                            {% endif %}
+                        </td>
+                        <td class="utc-time" data-utc-time="{{ document.time_created.isoformat() }}">
+                            {{ document.time_created.strftime('%d.%m.%y %H:%M') }}
+                        </td>
+                        <td>
+                            {% if document.deleted %}
+                            <i class="bi bi-x-octagon text-danger"></i>
+                            <span class="text-danger">{{ document.title }}</span>
+                            {% else %}
                             <a href="/documents/{{ document.uuid }}">{{ document.title }}</a>
+                            {% endif %}
                         </td>
                         <td>Документ по задаче</td>
                         <td>
@@ -31,6 +55,16 @@
                         </td>
                         <td>
                             <span title="{{ document.author.position }}">{{ document.author.name }}</span>
+                        </td>
+                        <td>
+                            {% if document.deleted %}
+                            <span class="text-muted">Удалено</span>
+                            {% else %}
+                            <a href="#" class="text-decoration-none text-danger delete-document"
+                               data-uuid="{{ document.uuid }}">
+                                <i class="bi bi-trash"></i> Удалить
+                            </a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -60,19 +94,65 @@
         {% endif %}
     </ul>
 </nav>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        document.querySelectorAll(".utc-time").forEach(function(element) {
-            const utcTime = element.getAttribute("data-utc-time");
-            const date = new Date(utcTime + 'Z');
-            const formattedTime = date.toLocaleString('ru-RU', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            element.textContent = formattedTime;
+    document.getElementById('select-all').addEventListener('change', function () {
+        const checkboxes = document.querySelectorAll('.document-checkbox');
+        checkboxes.forEach(checkbox => checkbox.checked = this.checked);
+        document.getElementById('delete-selected').classList.toggle('d-none', !this.checked);
+    });
+
+    const documentCheckboxes = document.querySelectorAll('.document-checkbox');
+    documentCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function () {
+            const anyChecked = Array.from(documentCheckboxes).some(cb => cb.checked);
+            document.getElementById('delete-selected').classList.toggle('d-none', !anyChecked);
+        });
+    });
+
+    document.getElementById('delete-selected').addEventListener('click', async function () {
+        const selected = Array.from(documentCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+        if (selected.length > 0 && confirm('Вы уверены, что хотите удалить эти файлы безвозвратно? Вернуть их будет невозможно.')) {
+            try {
+                const response = await fetch('/documents/bulk-delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ uuids: selected })
+                });
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Ошибка при удалении документов');
+                }
+            } catch (error) {
+                alert('Ошибка при удалении документов');
+            }
+        }
+    });
+
+    document.querySelectorAll('.delete-document').forEach(button => {
+        button.addEventListener('click', async function () {
+            const uuid = this.getAttribute('data-uuid');
+            if (confirm('Вы уверены, что хотите удалить этот файл безвозвратно? Вернуть его будет невозможно.')) {
+                try {
+                    const response = await fetch(`/documents/delete/${uuid}`, {
+                        method: 'GET'
+                    });
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        alert('Ошибка при удалении документа');
+                    }
+                } catch (error) {
+                    alert('Ошибка при удалении документа');
+                }
+            }
         });
     });
 </script>

@@ -56,24 +56,28 @@
         <div class="documents">
             <div class="d-flex flex-column">
                 {% for document in comment.documents %}
-                <div class="document-item"  >
-                    <a href="/documents/{{ document.uuid }}" target="_blank">
-                        {% if document.title.endswith('.pdf') %}
-                        <i class="bi bi-file-earmark-pdf"></i>
-                        {% elif document.title.endswith('.doc') or document.title.endswith('.docx') %}
-                        <i class="bi bi-file-earmark-word"></i>
-                        {% elif document.title.endswith('.xls') or document.title.endswith('.xlsx') %}
-                        <i class="bi bi-file-earmark-excel"></i>
-                        {% elif document.title.endswith('.ppt') or document.title.endswith('.pptx') %}
-                        <i class="bi bi-file-earmark-ppt"></i>
-                        {% elif document.title.endswith('.jpg') or document.title.endswith('.jpeg') or
-                        document.title.endswith('.png') %}
-                        <i class="bi bi-file-earmark-image"></i>
-                        {% else %}
-                        <i class="bi bi-file-earmark"></i>
-                        {% endif %}
-                        {{ document.title }}
-                    </a>
+                <div class="document-item">
+                    {% if document.deleted %}
+                    <i class="bi bi-x-octagon text-danger"></i>
+                    {% endif %}
+                    {% if document.title.endswith('.pdf') %}
+                    <i class="bi bi-file-earmark-pdf"></i>
+                    {% elif document.title.endswith('.doc') or document.title.endswith('.docx') %}
+                    <i class="bi bi-file-earmark-word"></i>
+                    {% elif document.title.endswith('.xls') or document.title.endswith('.xlsx') %}
+                    <i class="bi bi-file-earmark-excel"></i>
+                    {% elif document.title.endswith('.ppt') or document.title.endswith('.pptx') %}
+                    <i class="bi bi-file-earmark-ppt"></i>
+                    {% elif document.title.endswith('.jpg') or document.title.endswith('.jpeg') or document.title.endswith('.png') %}
+                    <i class="bi bi-file-earmark-image"></i>
+                    {% else %}
+                    <i class="bi bi-file-earmark"></i>
+                    {% endif %}
+                    {% if document.deleted %}
+                    <span class="text-secondary">{{ document.title }}</span>
+                    {% else %}
+                    <a href="/documents/{{ document.uuid }}" target="_blank">{{ document.title }}</a>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>

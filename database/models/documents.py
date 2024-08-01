@@ -1,7 +1,7 @@
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, String, Integer, ForeignKey
+from sqlalchemy import Column, String, Integer, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 
 from ._base import BaseModel
@@ -20,6 +20,7 @@ class Document(BaseModel):
     type: str = Column(String(100), nullable=False)
     author_id: int = Column(Integer, ForeignKey('users.id'), nullable=False)
     comment_id: int = Column(Integer, ForeignKey('comments.id'), nullable=False)
+    deleted = Column(Boolean, default=False)
     power_of_attorney_id: int = Column(Integer, ForeignKey('power_of_attorneys.id'), nullable=True)
 
     author: 'User' = relationship('User', back_populates='documents')
