@@ -309,17 +309,17 @@ async def update_task_status(
     if not is_valid_transition(task.status, status_enum, user_roles):
         raise HTTPException(status_code=400, detail="Недопустимый переход статуса")
     task.status = status_enum
-    if status_comment:
-        new_comment = Comment(
-            type=CommentType.status_change,
-            task_id=task.id,
-            user_id=user.id,
-            author_roles=list(get_user_roles(request.state.user, task)),
-            content=status_comment,
-            previous_status=previous_status.name,
-            new_status=status_enum.name
-        )
-        db.add(new_comment)
+
+    new_comment = Comment(
+        type=CommentType.status_change,
+        task_id=task.id,
+        user_id=user.id,
+        author_roles=list(get_user_roles(request.state.user, task)),
+        content=status_comment or "",
+        previous_status=previous_status.name,
+        new_status=status_enum.name
+    )
+    db.add(new_comment)
 
     db.add(task)
     await db.commit()

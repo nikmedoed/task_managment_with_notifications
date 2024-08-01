@@ -40,10 +40,10 @@ ROLE_STATUS_TRANSITIONS = {
         Statuses.PLANNING: {Statuses.DRAFT}
     },
     UserRole.EXECUTOR: {
-        Statuses.PLANNING: {Statuses.ACCEPTED, Statuses.REJECTED},
+        Statuses.PLANNING: {Statuses.ACCEPTED, Statuses.REVIEW, Statuses.REJECTED},
         Statuses.ACCEPTED: {Statuses.REVIEW, Statuses.REJECTED},
         Statuses.REJECTED: {Statuses.ACCEPTED},
-        Statuses.REWORK: {Statuses.REVIEW},
+        Statuses.REWORK: {Statuses.REJECTED, Statuses.REVIEW},
     },
     UserRole.SUPERVISOR: {
         Statuses.REVIEW: {Statuses.DONE, Statuses.REWORK},
