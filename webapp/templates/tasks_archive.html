@@ -65,10 +65,11 @@
                             <tbody>
                             {% for task in tasks %}
                             <tr onclick="window.location.href='{{ url_for('view_task', task_id=task.id) }}'"
-                                style="cursor:pointer;">
+                                style="cursor:pointer;"
+                                class="{% if task.is_active %} {% if task.days_remain < 0 %}table-danger{% elif task.days_remain <= 3 %}table-warning{% endif %}{% endif %}">
                                 <td>{{ task.id }}</td>
-                                <td class="utc-time" data-utc-time="{{ task.time_updated.isoformat() }}">{{
-                                    task.time_updated.strftime('%d.%m.%y %H:%M') }}
+                                <td class="utc-time" data-utc-time="{{ task.time_updated.isoformat() }}">
+                                    {{ task.time_updated.strftime('%d.%m.%y %H:%M') }}
                                 </td>
                                 <td>{{ task.description }}</td>
                                 <td>{{ task.task_type.name }}</td>

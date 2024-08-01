@@ -63,6 +63,8 @@ def create_app() -> FastAPI:
             for args in generate_static():
                 generate_static_template(*args)
 
+    app.mount("/static/vendor", StaticFiles(directory=os.path.join(BASE_DIR, "../webapp_theme_static/vendor")), name="uploads")
+    app.mount("/static/css", StaticFiles(directory=os.path.join(BASE_DIR, "../webapp_theme_static/css")), name="uploads")
     app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
     def restricted(path) -> bool:
