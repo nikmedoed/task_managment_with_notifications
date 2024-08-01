@@ -21,7 +21,7 @@
                     {% endif %}
                 </p>
                 <p>
-                    <strong>Срок:</strong>
+                    <strong>Срок до (включительно):</strong>
                     {% if task.actual_plan_date == task.initial_plan_date %}
                     {{ task.actual_plan_date.strftime('%d.%m.%Y') }}
                     {% else %}
@@ -33,15 +33,6 @@
                         <i class="bi bi-pencil-square"></i>
                     </a>
                 </p>
-                <p><strong>Исполнитель:</strong> {{ task.executor.last_name }} {{ task.executor.first_name }} {{
-                    task.executor.middle_name }} – {{ task.executor.position }}
-                    {% if is_supplier %}
-                    <a href="#" class="text-decoration-none" data-bs-toggle="modal"
-                       data-bs-target="#updateExecutorModal">
-                        <i class="ri-user-shared-line"></i>
-                    </a>
-                    {% endif %}
-                </p>
                 <p><strong>Руководитель:</strong> {{ task.supervisor.last_name }} {{ task.supervisor.first_name }} {{
                     task.supervisor.middle_name }} – {{ task.supervisor.position }}
                     {% if is_supplier %}
@@ -51,7 +42,15 @@
                     </a>
                     {% endif %}
                 </p>
-
+                <p><strong>Исполнитель:</strong> {{ task.executor.last_name }} {{ task.executor.first_name }} {{
+                    task.executor.middle_name }} – {{ task.executor.position }}
+                    {% if is_supplier %}
+                    <a href="#" class="text-decoration-none" data-bs-toggle="modal"
+                       data-bs-target="#updateExecutorModal">
+                        <i class="ri-user-shared-line"></i>
+                    </a>
+                    {% endif %}
+                </p>
 
                 <table class="table">
                     <thead>
@@ -244,26 +243,7 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
-<script>
-    function submitStatusForm(status) {
-        const form = document.getElementById('updateStatusForm');
-        const commentField = document.getElementById('status_comment');
-        const requiredStatuses = ['REWORK', 'REJECTED'];
-
-        if (requiredStatuses.includes(status) && !commentField.value.trim()) {
-            commentField.setCustomValidity('Комментарий обязателен для этого статуса.');
-            commentField.reportValidity();
-            return;
-        }
-
-        commentField.setCustomValidity('');
-        const statusInput = document.createElement('input');
-        statusInput.type = 'hidden';
-        statusInput.name = 'new_status';
-        statusInput.value = status;
-        form.appendChild(statusInput);
-        form.submit();
-    }
-</script>
+{% block scripts %}
 {% endblock %}

@@ -224,10 +224,14 @@ async def update_role(
     if not new_user:
         raise HTTPException(status_code=404, detail="Нет такого пользователя")
 
+    old_user = None
+    user_changed = False
+
     if role == "executor":
         old_user = task.executor
         if old_user.id != new_user_id:
             task.executor_id = new_user_id
+            user_changed = True
             if task.status not in {Statuses.DRAFT, Statuses.PLANNING} and task.status not in COMPLETED_STATUSES:
                 previous_status = task.status
                 task.status = Statuses.PLANNING
@@ -240,60 +244,40 @@ async def update_role(
                     new_status=Statuses.PLANNING.name
                 )
                 db.add(status_change_comment)
-
-            user_change_comment = Comment(
-                type=CommentType.user_change,
-                task_id=task.id,
-                user_id=request.state.user.id,
-                author_roles=list(get_user_roles(request.state.user, task)),
-                extra_data={
-                    "role": role,
-                    "old_user": {
-                        "id": old_user.id,
-                        "name": f"{old_user.last_name} {old_user.first_name} {old_user.middle_name}",
-                        "position": old_user.position
-                    },
-                    "new_user": {
-                        "id": new_user.id,
-                        "name": f"{new_user.last_name} {new_user.first_name} {new_user.middle_name}",
-                        "position": new_user.position
-                    }
-                }
-            )
-            db.add(user_change_comment)
     elif role == "supervisor":
         old_user = task.supervisor
         if old_user.id != new_user_id:
             task.supervisor_id = new_user_id
-
-            user_change_comment = Comment(
-                type=CommentType.user_change,
-                task_id=task.id,
-                user_id=request.state.user.id,
-                author_roles=list(get_user_roles(request.state.user, task)),
-                extra_data={
-                    "role": role,
-                    "old_user": {
-                        "id": old_user.id,
-                        "name": f"{old_user.last_name} {old_user.first_name} {old_user.middle_name}",
-                        "position": old_user.position
-                    },
-                    "new_user": {
-                        "id": new_user.id,
-                        "name": f"{new_user.last_name} {new_user.first_name} {new_user.middle_name}",
-                        "position": new_user.position
-                    }
-                }
-            )
-            db.add(user_change_comment)
+            user_changed = True
     else:
         raise HTTPException(status_code=400, detail="Некорректная роль")
+
+    if user_changed:
+        user_change_comment = Comment(
+            type=CommentType.user_change,
+            task_id=task.id,
+            user_id=request.state.user.id,
+            author_roles=list(get_user_roles(request.state.user, task)),
+            extra_data={
+                "role": role,
+                "old_user": {
+                    "id": old_user.id,
+                    "name": f"{old_user.last_name} {old_user.first_name} {old_user.middle_name}",
+                    "position": old_user.position
+                },
+                "new_user": {
+                    "id": new_user.id,
+                    "name": f"{new_user.last_name} {new_user.first_name} {new_user.middle_name}",
+                    "position": new_user.position
+                }
+            }
+        )
+        db.add(user_change_comment)
 
     db.add(task)
     await db.commit()
 
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
-
 
 
 @router.post("/{task_id}/update_status", response_class=HTMLResponse)
