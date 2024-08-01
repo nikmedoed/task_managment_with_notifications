@@ -29,20 +29,7 @@ async def task_archive(
 ):
     offset = (page - 1) * page_size
 
-    # Ensure the sort column is a valid attribute of Task
-    valid_sort_columns = {
-        'time_created': Task.time_created,
-        'time_updated': Task.time_updated,  # Added time_updated for sorting
-        'description': Task.description,
-        'task_type_id': Task.task_type_id,
-        'object_id': Task.object_id,
-        'supplier_id': Task.supplier_id,
-        'executor_id': Task.executor_id,
-        'supervisor_id': Task.supervisor_id,
-        'status': Task.status
-    }
-
-    sort_column = valid_sort_columns.get(sort_column, Task.time_updated)
+    sort_column = getattr(Task, sort_column, Task.time_updated)
 
     base_query = select(Task).options(
         joinedload(Task.task_type),
@@ -57,7 +44,6 @@ async def task_archive(
     elif status_filter == 'completed':
         base_query = base_query.filter(Task.status.in_(COMPLETED_STATUSES))
 
-    # Apply sorting
     if sort_order == 'desc':
         base_query = base_query.order_by(sort_column.desc())
     else:
