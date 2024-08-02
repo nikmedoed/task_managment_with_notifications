@@ -33,7 +33,7 @@
                                 <th></th>
                                 {% for column, display_name in {
                                 'id': 'ID',
-                                'time_updated': 'Дата изменения',
+                                'actual_plan_date': 'Срок до',
                                 'description': 'Описание',
                                 'task_type_id': 'Тип',
                                 'object_id': 'Объект',
@@ -69,7 +69,7 @@
                                 </td>
                                 <td>{{ task.id }}</td>
                                 <td class="utc-time" data-utc-time="{{ task.time_updated.isoformat() }}">
-                                    {{ task.time_updated.strftime('%d.%m.%y %H:%M') }}
+                                    {{ task.actual_plan_date.strftime('%d.%m.%y') }}
                                 </td>
                                 <td>{{ task.description }}</td>
                                 <td>{{ task.task_type.name }}</td>
