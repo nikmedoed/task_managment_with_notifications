@@ -48,11 +48,19 @@ async def edit_user(request: Request, user_id: int = None, db: AsyncSession = De
 @router.post("/{user_id}/edit", response_class=HTMLResponse)
 async def save_user(request: Request, user_id: int = None, db: AsyncSession = Depends(get_db)):
     current_user = request.state.user
-    if user_id and not current_user.admin and current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="Not authorized to edit other users")
+    user_id = current_user.id
+
+    if user_id and not (current_user.admin or current_user.id != user_id):
+        raise HTTPException(status_code=403, detail="Неавторизованный доступ. Вы не можете редактировать данное поле.")
 
     form_data = await request.form()
     form_dict = {k: v for k, v in form_data.items()}
+
+    if not current_user.admin:
+        restricted_fields = ['admin', 'verificated', 'active']
+        for field in restricted_fields:
+            if field in form_dict:
+                raise HTTPException(status_code=403, detail=f"Вам не доступно изменение поля {field}")
 
     try:
         user_data = UserSchema(**form_dict)
@@ -62,10 +70,10 @@ async def save_user(request: Request, user_id: int = None, db: AsyncSession = De
             {"request": request, "user": form_dict, "errors": e.errors()}
         )
 
-    user = await db.get(User, user_id) if user_id else User(**user_data.dict())
+    user = await db.get(User, user_id) if user_id else User(**user_data.model_dump())
     if user_id and not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    for key, value in user_data.dict().items():
+        raise HTTPException(status_code=404, detail="Пользователь не найден.")
+    for key, value in user_data.model_dump().items():
         setattr(user, key, value)
     if not user_id:
         db.add(user)
