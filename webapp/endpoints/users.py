@@ -48,10 +48,15 @@ async def edit_user(request: Request, user_id: int = None, db: AsyncSession = De
 @router.post("/{user_id}/edit", response_class=HTMLResponse)
 async def save_user(request: Request, user_id: int = None, db: AsyncSession = Depends(get_db)):
     current_user = request.state.user
-    user_id = current_user.id
 
-    if user_id and not (current_user.admin or current_user.id != user_id):
-        raise HTTPException(status_code=403, detail="Неавторизованный доступ. Вы не можете редактировать данное поле.")
+    if user_id:
+        if not current_user.admin and current_user.id != user_id:
+            raise HTTPException(status_code=403, detail="Неавторизованный доступ. Вы не можете редактировать данное поле.")
+        user = await db.get(User, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="Пользователь не найден.")
+    else:
+        user_id = current_user.id
 
     form_data = await request.form()
     form_dict = {k: v for k, v in form_data.items()}
@@ -71,7 +76,7 @@ async def save_user(request: Request, user_id: int = None, db: AsyncSession = De
         )
 
     user = await db.get(User, user_id) if user_id else User(**user_data.model_dump())
-    if user_id and not user:
+    if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден.")
     for key, value in user_data.model_dump().items():
         setattr(user, key, value)

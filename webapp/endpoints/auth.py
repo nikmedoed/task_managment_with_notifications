@@ -1,16 +1,17 @@
-from typing import Annotated
-from webapp.deps import get_db, redis, templates
-from webapp.utils.RedisStore import COOKIE_AUTH
-from shared.app_config import app_config
-from database.models import User
-from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
-from fastapi.responses import RedirectResponse
-from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from uuid import uuid4
 import hashlib
 import hmac
+from typing import Annotated
+from uuid import uuid4
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
+from fastapi.responses import RedirectResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
+from database.models import User
+from shared.app_config import app_config
+from webapp.deps import get_db, redis, templates
+from webapp.utils.RedisStore import COOKIE_AUTH
 
 router = APIRouter()
 
@@ -32,9 +33,9 @@ async def telegram_callback(
         request: Request,
         user_id: Annotated[int, Query(alias='id')],
         query_hash: Annotated[str, Query(alias='hash')],
-        username: Annotated[str, Query(alias='username')],
         first_name: Annotated[str, Query(alias='first_name')],
         auth_date: Annotated[int, Query(alias='auth_date')],
+        username: Annotated[str, Query(alias='username')] = '',
         last_name: Annotated[str, Query(alias='last_name')] = '',
         photo_url: Annotated[str, Query(alias='photo_url')] = '',
         next_url: Annotated[str, Query(alias='next')] = '/',

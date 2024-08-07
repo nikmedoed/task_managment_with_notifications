@@ -1,6 +1,6 @@
 from typing import List, TYPE_CHECKING
 
-from sqlalchemy import Column, String, Integer, Boolean
+from sqlalchemy import Column, String, Boolean, BigInteger
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
@@ -22,7 +22,7 @@ class User(BaseModel):
     email: str = Column(String(100), nullable=True)
     phone_number: str = Column(String(15), nullable=True)
     telegram_nick: str = Column(String(50), nullable=True)
-    telegram_id: int = Column(Integer, nullable=False, unique=True, index=True)
+    telegram_id: int = Column(BigInteger, nullable=False, unique=True, index=True)
     position: str = Column(String(100), nullable=False)
     verificated: bool = Column(Boolean, nullable=False, default=False)
     active: bool = Column(Boolean, nullable=False, default=True)

@@ -23,7 +23,7 @@ class RedisTokenManager(redis.Redis):
         await self.set(f"{COOKIE_AUTH}:{key}:{user_id}:{device_id}", token, ex=REDIS_TTL)
         if response:
             response.set_cookie(key=COOKIE_AUTH, value=token, max_age=REDIS_TTL,
-                                # secure=True,
+                                secure=True,
                                 httponly=True)
         return token
 
