@@ -1,7 +1,8 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from dotenv import load_dotenv, find_dotenv
-from typing import Optional
 import os
+from typing import Optional
+
+from dotenv import load_dotenv, find_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DOTENV_PATH = find_dotenv()
 if not DOTENV_PATH:
@@ -16,6 +17,7 @@ class DatabaseConfig(BaseSettings):
     password: str
     host: str = "localhost"
     port: int = 3306
+    echo: Optional[bool] = False
 
     @property
     def url(self) -> str:
@@ -37,6 +39,7 @@ class RedisConfig(BaseSettings):
     port: int = 6379
     db: int = 0
     password: Optional[str] = None
+    secure: Optional[bool] = True
 
     model_config = SettingsConfigDict(env_prefix='REDIS_', env_file=DOTENV_PATH, extra='ignore')
 

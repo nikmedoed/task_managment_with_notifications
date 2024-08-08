@@ -12,6 +12,8 @@ REDIS_KEY_USER_REGISTER = "user_register"
 
 class RedisTokenManager(redis.Redis):
     def __init__(self, *args, jwt_secret_key: str, **kwargs):
+        self.secure = kwargs['secure']
+        del kwargs['secure']
         super().__init__(*args, **kwargs)
         self.jwt_secret_key = jwt_secret_key
 
@@ -23,11 +25,11 @@ class RedisTokenManager(redis.Redis):
         await self.set(f"{COOKIE_AUTH}:{key}:{user_id}:{device_id}", token, ex=REDIS_TTL)
         if response:
             response.set_cookie(key=COOKIE_AUTH, value=token, max_age=REDIS_TTL,
-                                secure=True,
+                                secure=self.secure,
                                 httponly=True)
         return token
 
-    # стоит продумать польностью логику, чтобы использовать tgid локально при регистрации,
+    # стоит продумать полностью логику, чтобы использовать tgid локально при регистрации,
     #  но тогда усложняется мидлварь и лишние проверки, а ценности пока мало
     async def check_token(self, request: Request):
         token = request.cookies.get(COOKIE_AUTH)

@@ -1,7 +1,7 @@
-import asyncio
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from shared.app_config import app_config
 from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+
+from shared.app_config import app_config
 
 
 class DatabaseSessionManager:
@@ -37,6 +37,6 @@ class DatabaseSessionManager:
 
 
 # Initialize the manager
-db_manager = DatabaseSessionManager(echo=True, expire_on_commit=False)
+db_manager = DatabaseSessionManager(echo=app_config.database.echo, expire_on_commit=False)
 
 async_dbsession: async_sessionmaker[AsyncSession] = db_manager.get_sessionmaker()

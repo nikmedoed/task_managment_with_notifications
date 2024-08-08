@@ -13,7 +13,6 @@ from sqlalchemy.future import select
 import webapp.filters
 from database import async_dbsession
 from database.models import User
-from webapp.deps import get_db
 from webapp.deps import get_db, redis, BASE_DIR, templates, generate_static_template
 from webapp.endpoints import auth, register, tasks
 from webapp.endpoints import tasks
