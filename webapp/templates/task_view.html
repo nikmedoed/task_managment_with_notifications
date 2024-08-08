@@ -2,7 +2,13 @@
 
 {% block content %}
 <p class="lead">
-    <strong>Постановщик:</strong> {{ task.supplier.full_name }} – {{ task.supplier.position }}
+    <strong>Постановщик:</strong>
+    {% if task.supplier.telegram_link %}
+        <a href="{{ task.supplier.telegram_link }}" target="_blank">{{ task.supplier.full_name }}</a>
+    {% else %}
+        {{ task.supplier.full_name }}
+    {% endif %}
+    – {{ task.supplier.position }}
 </p>
 <div class="row">
     <!-- Основные данные по задаче -->
@@ -37,20 +43,34 @@
                     <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#updateDateModal"><i
                             class="bi bi-pencil-square"></i></a>
                 </p>
-                <p>
-                    <strong>Руководитель:</strong> {{ task.supervisor.full_name }} – {{ task.supervisor.position }}
-                    {% if is_supplier %}
-                    <a href="#" class="text-decoration-none" data-bs-toggle="modal"
-                       data-bs-target="#updateSupervisorModal"><i class="ri-user-shared-line"></i></a>
-                    {% endif %}
-                </p>
-                <p>
-                    <strong>Исполнитель:</strong> {{ task.executor.full_name }} – {{ task.executor.position }}
-                    {% if is_supplier %}
-                    <a href="#" class="text-decoration-none" data-bs-toggle="modal"
-                       data-bs-target="#updateExecutorModal"><i class="ri-user-shared-line"></i></a>
-                    {% endif %}
-                </p>
+<p>
+    <strong>Руководитель:</strong>
+    {% if task.supervisor.telegram_link %}
+        <a href="{{ task.supervisor.telegram_link }}" target="_blank">{{ task.supervisor.full_name }}</a>
+    {% else %}
+        {{ task.supervisor.full_name }}
+    {% endif %}
+    – {{ task.supervisor.position }}
+    {% if is_supplier %}
+        <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#updateSupervisorModal">
+            <i class="ri-user-shared-line"></i>
+        </a>
+    {% endif %}
+</p>
+<p>
+    <strong>Исполнитель:</strong>
+    {% if task.executor.telegram_link %}
+        <a href="{{ task.executor.telegram_link }}" target="_blank">{{ task.executor.full_name }}</a>
+    {% else %}
+        {{ task.executor.full_name }}
+    {% endif %}
+    – {{ task.executor.position }}
+    {% if is_supplier %}
+        <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#updateExecutorModal">
+            <i class="ri-user-shared-line"></i>
+        </a>
+    {% endif %}
+</p>
 
                 <table class="table">
                     <thead>

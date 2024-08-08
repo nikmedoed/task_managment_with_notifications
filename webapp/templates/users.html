@@ -113,9 +113,9 @@
                         </td>
                         <td>
                             {% if user.telegram_nick %}
-                            <a href="https://t.me/{{ user.telegram_nick }}">{{ user.telegram_nick }}</a>
+                            <a href="{{ user.telegram_link }}" target="_blank">{{ user.telegram_nick }}</a>
                             {% else %}
-                            <a href="tg://resolve?domain={{ user.telegram_id }}">{{ user.telegram_id }}</a>
+                            id{{ user.telegram_id }}
                             {% endif %}
                         </td>
                         <td>{{ user.position }}</td>

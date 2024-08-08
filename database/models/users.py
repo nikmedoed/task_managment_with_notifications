@@ -58,6 +58,11 @@ class User(BaseModel):
         middle = f" {self.middle_name}" if self.middle_name else ""
         return f"{self.last_name} {self.first_name}{middle}"
 
+    @property
+    def telegram_link(self):
+        if self.telegram_nick:
+            return f"https://t.me/{self.telegram_nick}"
+
     @hybrid_property
     def short_name(self):
         middle_initial = f" {self.middle_name[0]}." if self.middle_name else ""

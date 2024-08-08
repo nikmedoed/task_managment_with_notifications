@@ -49,7 +49,7 @@ async def edit_user(request: Request, user_id: int = None, db: AsyncSession = De
 async def save_user(request: Request, user_id: int = None, db: AsyncSession = Depends(get_db)):
     current_user = request.state.user
 
-    raise HTTPException(status_code=403, detail="Неавторизованный доступ. Вы не можете редактировать данное поле. "*10)
+    # raise HTTPException(status_code=403, detail="Неавторизованный доступ. Вы не можете редактировать данное поле. "*10)
 
     if user_id:
         if not current_user.admin and current_user.id != user_id:
