@@ -5,13 +5,34 @@
     .datatable-bottom {
         display: none;
     }
+    @media (max-width: 576px) {
+        .w-sm-100 {
+            width: 100% !important;
+        }
+    }
 </style>
 <div class="row">
     <div class="col-lg-12">
-        <div class="d-flex justify-content-end mt-3">
-            <a href="{{ url_for('add_task') }}" class="btn btn-primary mb-2"><i class="bi bi-plus-lg"></i> Добавить
-                задачу</a>
+
+        <div class="d-flex mb-2 flex-column flex-sm-row align-items-center justify-content-sm-center justify-content-between">
+            <div class="d-flex flex-column flex-sm-row align-items-center justify-content-center w-100 w-sm-auto mb-2 mb-sm-0">
+                <label for="global-search" class="form-label mb-0 flex-shrink-0 me-2"
+                       style="font-size: 1.1rem; white-space: nowrap;">Фильтр записей:</label>
+
+                <div class="input-group flex-grow-1 flex-sm-grow-0" style="max-width: 500px;">
+                    <input type="text" id="global-search" class="form-control" placeholder="Поиск по всем таблицам...">
+                    <button class="btn btn-outline-secondary" type="button" id="clear-search"><i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end w-sm-100  mt-sm-0 ms-sm-2">
+                <a href="{{ url_for('add_task') }}" class="btn btn-primary ms-auto" style="white-space: nowrap;"><i
+                        class="bi bi-plus-lg"></i> Добавить задачу</a>
+            </div>
+
         </div>
+
 
         {% if supplier_tasks %}
         <!-- Supplier Tasks -->
@@ -169,28 +190,50 @@
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const datatables = document.querySelectorAll('.datatable')
+        const datatables = document.querySelectorAll('.datatable');
+        const searchInput = document.getElementById('global-search');
+        const clearSearchBtn = document.getElementById('clear-search');
+
+        const dataTableInstances = [];
+
         datatables.forEach(function (datatable) {
             const dataTableInstance = new simpleDatatables.DataTable(datatable, {
                 searchable: false,
                 perPageSelect: false,
-                perPage: -1, // Отображать все записи
+                perPage: -1,
                 labels: {
                     info: ''
                 }
-            })
+            });
+
+            dataTableInstances.push(dataTableInstance);
 
             dataTableInstance.on('datatable.init', function () {
-                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
                 var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                    return new bootstrap.Tooltip(tooltipTriggerEl)
-                })
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
                 const datatableBottom = datatable.closest('.dataTable-wrapper').querySelector('.datatable-bottom');
                 if (datatableBottom) {
                     datatableBottom.parentNode.removeChild(datatableBottom);
                 }
-            })
-        })
-    })
+            });
+        });
+
+        // Обработчик поиска
+        searchInput.addEventListener('keyup', function () {
+            const query = searchInput.value.toLowerCase();
+
+            dataTableInstances.forEach(function (dataTableInstance) {
+                dataTableInstance.search(query);
+            });
+        });
+
+        // Обработчик для кнопки очистки поля поиска
+        clearSearchBtn.addEventListener('click', function () {
+            searchInput.value = '';
+            searchInput.dispatchEvent(new Event('keyup')); // Триггерим событие для поиска
+        });
+    });
 </script>
 {% endblock %}
