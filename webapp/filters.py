@@ -18,3 +18,7 @@ def format_date_diff(actual_date: datetime, initial_date: datetime) -> str:
     if days_diff == 0:
         return str(actual_date)
     return f"{actual_date} ({days_diff:+})"
+
+
+def nl2br(value):
+    return value.replace('\n', '<br>')

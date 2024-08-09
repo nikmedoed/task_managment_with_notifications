@@ -26,7 +26,7 @@
         {% endif %}
 
         {% if comment.type == CommentType.error %}
-        <span class="text-danger">{{ comment.content }}</span>
+        <span class="text-danger">{{ comment.content | replace('\n', '<br>') | safe }}</span>
         {% else %}
         <small>
             {% if comment.type == CommentType.status_change %}
@@ -49,7 +49,7 @@
     </div>
     <div style="margin-left:20px">
         {% if comment.content %}
-        {{ comment.content }}
+        {{ comment.content | replace('\n', '<br>') | safe }}
         {% endif %}
 
         {% if comment.documents %}
@@ -68,7 +68,8 @@
                     <i class="bi bi-file-earmark-excel"></i>
                     {% elif document.title.endswith('.ppt') or document.title.endswith('.pptx') %}
                     <i class="bi bi-file-earmark-ppt"></i>
-                    {% elif document.title.endswith('.jpg') or document.title.endswith('.jpeg') or document.title.endswith('.png') %}
+                    {% elif document.title.endswith('.jpg') or document.title.endswith('.jpeg') or
+                    document.title.endswith('.png') %}
                     <i class="bi bi-file-earmark-image"></i>
                     {% else %}
                     <i class="bi bi-file-earmark"></i>
