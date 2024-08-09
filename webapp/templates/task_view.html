@@ -4,9 +4,9 @@
 <p class="lead">
     <strong>Постановщик:</strong>
     {% if task.supplier.telegram_link %}
-        <a href="{{ task.supplier.telegram_link }}" target="_blank">{{ task.supplier.full_name }}</a>
+    <a href="{{ task.supplier.telegram_link }}" target="_blank">{{ task.supplier.full_name }}</a>
     {% else %}
-        {{ task.supplier.full_name }}
+    {{ task.supplier.full_name }}
     {% endif %}
     – {{ task.supplier.position }}
 </p>
@@ -18,8 +18,8 @@
                 <h5 class="card-title">{{ task.description }}</h5>
                 {% if task.important %}
                 <p>
-                    <span class="badge bg-warning text-dark"><i
-                            class="bi bi-exclamation-triangle me-1"></i> Важная</span>
+                        <span class="badge bg-warning text-dark"><i
+                                class="bi bi-exclamation-triangle me-1"></i> Важная</span>
                 </p>
                 {% endif %}
                 <p>
@@ -43,41 +43,43 @@
                     <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#updateDateModal"><i
                             class="bi bi-pencil-square"></i></a>
                 </p>
-<p>
-    <strong>Руководитель:</strong>
-    {% if task.supervisor.telegram_link %}
-        <a href="{{ task.supervisor.telegram_link }}" target="_blank">{{ task.supervisor.full_name }}</a>
-    {% else %}
-        {{ task.supervisor.full_name }}
-    {% endif %}
-    – {{ task.supervisor.position }}
-    {% if is_supplier %}
-        <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#updateSupervisorModal">
-            <i class="ri-user-shared-line"></i>
-        </a>
-    {% endif %}
-</p>
-<p>
-    <strong>Исполнитель:</strong>
-    {% if task.executor.telegram_link %}
-        <a href="{{ task.executor.telegram_link }}" target="_blank">{{ task.executor.full_name }}</a>
-    {% else %}
-        {{ task.executor.full_name }}
-    {% endif %}
-    – {{ task.executor.position }}
-    {% if is_supplier %}
-        <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#updateExecutorModal">
-            <i class="ri-user-shared-line"></i>
-        </a>
-    {% endif %}
-</p>
+                <p>
+                    <strong>Руководитель:</strong>
+                    {% if task.supervisor.telegram_link %}
+                    <a href="{{ task.supervisor.telegram_link }}" target="_blank">{{ task.supervisor.full_name }}</a>
+                    {% else %}
+                    {{ task.supervisor.full_name }}
+                    {% endif %}
+                    – {{ task.supervisor.position }}
+                    {% if is_supplier %}
+                    <a href="#" class="text-decoration-none" data-bs-toggle="modal"
+                       data-bs-target="#updateSupervisorModal">
+                        <i class="ri-user-shared-line"></i>
+                    </a>
+                    {% endif %}
+                </p>
+                <p>
+                    <strong>Исполнитель:</strong>
+                    {% if task.executor.telegram_link %}
+                    <a href="{{ task.executor.telegram_link }}" target="_blank">{{ task.executor.full_name }}</a>
+                    {% else %}
+                    {{ task.executor.full_name }}
+                    {% endif %}
+                    – {{ task.executor.position }}
+                    {% if is_supplier %}
+                    <a href="#" class="text-decoration-none" data-bs-toggle="modal"
+                       data-bs-target="#updateExecutorModal">
+                        <i class="ri-user-shared-line"></i>
+                    </a>
+                    {% endif %}
+                </p>
 
-                <table class="table">
+                <table class="table table-hover">
                     <thead>
                     <tr>
-                        <th>Переносы</th>
-                        <th>Доработки</th>
-                        <th>Уведомления</th>
+                        <th style="word-break: break-all;">Переносы</th>
+                        <th style="word-break: break-all;">Доработки</th>
+                        <th style="word-break: break-all;">Уведомления</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -90,36 +92,44 @@
                 </table>
 
                 {% if is_supplier or available_statuses %}
-                <div class="d-flex justify-content-end">
+                <div class="d-flex flex-column flex-sm-row flex-md-row flex-lg-column flex-xxl-row align-items-stretch justify-content-end mt-3 gap-2">
                     {% if available_statuses %}
-                    <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal"
-                            data-bs-target="#statusModal"><i class="bi bi-box-arrow-in-up-right"></i> Сменить статус
+                    <button type="button" class="btn btn-primary d-flex justify-content-center align-items-center"
+                            data-bs-toggle="modal" data-bs-target="#statusModal">
+                        <i class="bi bi-box-arrow-in-up-right me-2"></i> Сменить статус
                     </button>
                     {% endif %}
 
                     {% if is_supplier and task.status != Statuses.DONE %}
                     {% if task.status == Statuses.CANCELED %}
-                    <form action="{{ url_for('update_task_status', task_id=task.id) }}" method="post"
-                          class="d-inline me-2">
+                    <button type="submit" form="restoreForm" class="btn btn-warning">
+                        Восстановить
+                    </button>
+                    <a href="{{ url_for('duplicate_task', task_id=task.id) }}" class="btn btn-secondary">
+                        Пересоздать
+                    </a>
+
+                    <form id="restoreForm" action="{{ url_for('update_task_status', task_id=task.id) }}" method="post"
+                          style="display: none;">
                         <input type="hidden" name="new_status" value="PLANNING"/>
-                        <button type="submit" class="btn btn-warning">Восстановить</button>
                     </form>
-                    <form action="{{ url_for('duplicate_task', task_id=task.id) }}" method="get" class="d-inline">
-                        <button type="submit" class="btn btn-secondary">Пересоздать</button>
-                    </form>
+
                     {% else %}
-                    <form action="{{ url_for('update_task_status', task_id=task.id) }}" method="post"
-                          class="d-inline me-2">
+                    <button type="submit" form="cancelForm" class="btn btn-danger">
+                        Отменить
+                    </button>
+                    <a href="{{ url_for('duplicate_task', task_id=task.id) }}" class="btn btn-secondary">
+                        Отменить и пересоздать
+                    </a>
+                    <form id="cancelForm" action="{{ url_for('update_task_status', task_id=task.id) }}" method="post"
+                          style="display: none;">
                         <input type="hidden" name="new_status" value="CANCELED"/>
-                        <button type="submit" class="btn btn-danger">Отменить</button>
-                    </form>
-                    <form action="{{ url_for('duplicate_task', task_id=task.id) }}" method="get" class="d-inline">
-                        <button type="submit" class="btn btn-secondary">Отменить и пересоздать</button>
                     </form>
                     {% endif %}
                     {% endif %}
                 </div>
                 {% endif %}
+
             </div>
             <div class="card-footer">Создано: {{ task.time_created.strftime('%d.%m.%Y %H:%m') }}, обновлено: {{
                 task.time_updated.strftime('%d.%m.%Y %H:%m') }}

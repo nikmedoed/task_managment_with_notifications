@@ -8,11 +8,13 @@
             <h1 class="text-center">{{ status_code }}</h1>
             <h2 class="text-center">{{ detail }}</h2>
             {% if extra_detail %}
-            <pre class="text-center">{{ extra_detail }}</pre>
+            <pre class="alert alert-danger text-wrap w-100">{{ extra_detail }}</pre>
             {% endif %}
             <div class="d-flex justify-content-center">
-                <a class="btn btn-secondary mx-2" style="min-width: 150px;" href="/">На главную</a>
-                <a class="btn btn-secondary mx-2" style="min-width: 150px;" href="javascript:history.back()">Назад</a>
+                <a class="btn btn-secondary mx-2 d-flex align-items-center justify-content-center text-center"
+                   style="min-width: 150px" href="/">На главную</a>
+                <a class="btn btn-secondary mx-2 d-flex align-items-center justify-content-center text-center"
+                   style="min-width: 150px" href="javascript:history.back()">Назад</a>
             </div>
             <img src="/static/img/error.svg" class="img-fluid py-5" alt="{{ title }}">
         </section>

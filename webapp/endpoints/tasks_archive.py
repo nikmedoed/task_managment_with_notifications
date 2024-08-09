@@ -30,7 +30,7 @@ tab_filters = {
 @router.get("", response_class=HTMLResponse)
 async def task_archive(
         request: Request,
-        status_filter: str = Query('all'),
+        status_filter: str = Query('active'),
         sort_column: str = Query('time_updated'),
         sort_order: str = Query('desc'),
         page: int = Query(1, ge=1),

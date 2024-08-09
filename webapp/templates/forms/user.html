@@ -35,7 +35,7 @@
     <input type="text" class="form-control" id="position" name="position" value="{{ user.position if user else '' }}"
            required>
 </div>
-{% if user and user.admin %}
+{% if request.state.user.admin %}
 <div class="form-check mb-3">
     <input class="form-check-input"
            type="checkbox" id="verificated" name="verificated" {% if user and user.verificated %}checked{% endif %}>

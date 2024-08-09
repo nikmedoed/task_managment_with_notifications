@@ -11,70 +11,72 @@
                     Ожидают верификации
                     <span class="badge rounded-pill bg-warning text-dark">{{ unverified_users|length }}</span>
                 </h5>
-                <table class="table table-hover">
-                    <thead>
-                    <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">ФИО</th>
-                        <th scope="col">Электронная почта</th>
-                        <th scope="col">Номер телефона</th>
-                        <th scope="col">Телеграм</th>
-                        <th scope="col">Должность</th>
-                         {% if request.state.user.admin %}
-                        <th scope="col">Действия</th>
-                        {% endif %}
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for user in unverified_users %}
-                    <tr>
-                        <th scope="row">{{ loop.index }}</th>
-                        <td>{{ user.full_name }}</td>
-                        <td>
-                            {% if user.email %}
-                            <a href="mailto:{{ user.email }}">{{ user.email }}</a>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">ФИО</th>
+                            <th scope="col">Электронная почта</th>
+                            <th scope="col">Номер телефона</th>
+                            <th scope="col">Телеграм</th>
+                            <th scope="col">Должность</th>
+                            {% if request.state.user.admin %}
+                            <th scope="col">Действия</th>
                             {% endif %}
-                        </td>
-                        <td>
-                            {% if user.phone_number %}
-                            <a href="tel:{{ user.phone_number }}">{{ user.phone_number }}</a>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for user in unverified_users %}
+                        <tr>
+                            <td scope="row">{{ loop.index }}</td>
+                            <td>{{ user.full_name }}</td>
+                            <td>
+                                {% if user.email %}
+                                <a href="mailto:{{ user.email }}">{{ user.email }}</a>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.phone_number %}
+                                <a href="tel:{{ user.phone_number }}">{{ user.phone_number }}</a>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.telegram_nick %}
+                                <a href="https://t.me/{{ user.telegram_nick }}">{{ user.telegram_nick }}</a>
+                                {% else %}
+                                <a href="tg://resolve?domain={{ user.telegram_id }}">{{ user.telegram_id }}</a>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.position }}</td>
+                            {% if request.state.user.admin %}
+                            <td>
+                                <div style="white-space: nowrap;">
+                                    <a href="{{ url_for('user_action', user_id=user.id, action='verify') }}"
+                                       class="text-decoration-none text-success">
+                                        <i class="bi bi-check-circle"></i> Верифицировать
+                                    </a>
+                                </div>
+                                <div style="white-space: nowrap;">
+                                    <a href="{{ url_for('edit_user', user_id=user.id) }}"
+                                       class="text-decoration-none">
+                                        <i class="bi bi-pencil-square"></i> Редактировать
+                                    </a>
+                                </div>
+                                <div style="white-space: nowrap;">
+                                    <a href="{{ url_for('user_action', user_id=user.id, action='block') }}"
+                                       class="text-decoration-none text-danger"
+                                       onclick="return confirm('Вы уверены, что хотите заблокировать этого пользователя?');">
+                                        <i class="bi bi-x-circle"></i> Заблокировать
+                                    </a>
+                                </div>
+                            </td>
                             {% endif %}
-                        </td>
-                        <td>
-                            {% if user.telegram_nick %}
-                            <a href="https://t.me/{{ user.telegram_nick }}">{{ user.telegram_nick }}</a>
-                            {% else %}
-                            <a href="tg://resolve?domain={{ user.telegram_id }}">{{ user.telegram_id }}</a>
-                            {% endif %}
-                        </td>
-                        <td>{{ user.position }}</td>
-                        {% if request.state.user.admin %}
-                        <td>
-                            <div style="white-space: nowrap;">
-                                <a href="{{ url_for('user_action', user_id=user.id, action='verify') }}"
-                                   class="text-decoration-none text-success">
-                                    <i class="bi bi-check-circle"></i> Верифицировать
-                                </a>
-                            </div>
-                            <div style="white-space: nowrap;">
-                                <a href="{{ url_for('edit_user', user_id=user.id) }}"
-                                   class="text-decoration-none">
-                                    <i class="bi bi-pencil-square"></i> Редактировать
-                                </a>
-                            </div>
-                            <div style="white-space: nowrap;">
-                                <a href="{{ url_for('user_action', user_id=user.id, action='block') }}"
-                                   class="text-decoration-none text-danger"
-                                   onclick="return confirm('Вы уверены, что хотите заблокировать этого пользователя?');">
-                                    <i class="bi bi-x-circle"></i> Заблокировать
-                                </a>
-                            </div>
-                        </td>
-                        {% endif %}
-                    </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
         {% endif %}
@@ -158,31 +160,31 @@
 
 {% block scripts %}
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-  const datatables = document.querySelectorAll(".datatable");
-  datatables.forEach((datatable) => {
-    new simpleDatatables.DataTable(datatable, {
-      perPage: 100,
-      perPageSelect: [10, 50, 100, ["All", -1]],
-      columns: [
-        {
-          select: 5,
-          searchable: false,
-          filter: ["Да", "Нет"],
-        },
-        {
-          select: 6,
-          searchable: false,
-          filter: ["Да", "Нет"],
-        },
-        {
-          select: 7,
-          sortable: false,
-          searchable: false,
-        },
-      ],
+    document.addEventListener("DOMContentLoaded", function () {
+      const datatables = document.querySelectorAll(".datatable");
+      datatables.forEach((datatable) => {
+        new simpleDatatables.DataTable(datatable, {
+          perPage: 100,
+          perPageSelect: [10, 50, 100, ["All", -1]],
+          columns: [
+            {
+              select: 5,
+              searchable: false,
+              filter: ["Да", "Нет"],
+            },
+            {
+              select: 6,
+              searchable: false,
+              filter: ["Да", "Нет"],
+            },
+            {
+              select: 7,
+              sortable: false,
+              searchable: false,
+            },
+          ],
+        });
+      });
     });
-  });
-});
 </script>
 {% endblock %}

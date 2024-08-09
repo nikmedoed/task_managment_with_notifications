@@ -13,77 +13,74 @@
                 <i class="bi bi-file-earmark-excel-fill"></i> Скачать в XLSX
             </a>
         </div>
-        <ul class="nav nav-tabs" id="myTab" role="tablist">
-            {% for tab, data in tab_data.items() %}
-            <li class="nav-item" role="presentation">
-                <a href="?status_filter={{ tab }}&page=1&page_size={{ page_size }}"
-                   class="nav-link {% if status_filter == tab %}active{% endif %}" id="{{ tab }}-tab" role="tab">
-                    {{ data.name }} ({{ data.count }})
-                </a>
-            </li>
-            {% endfor %}
-        </ul>
+        <div class="d-flex overflow-auto">
+            <ul class="nav nav-tabs flex-nowrap" id="myTab" role="tablist">
+                {% for tab, data in tab_data.items() %}
+                <li class="nav-item" role="presentation">
+                    <a href="?status_filter={{ tab }}&page=1&page_size={{ page_size }}"
+                       class="nav-link text-nowrap {% if status_filter == tab %}active{% endif %}" id="{{ tab }}-tab"
+                       role="tab">
+                        {{ data.name }} ({{ data.count }})
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
         <div class="card">
-            <div class="card-body">
-                <div class="tab-content" id="myTabContent">
-                    <div class="tab-pane fade show active" id="tasks" role="tabpanel" aria-labelledby="all-tab">
-                        <table id="tasksTable" class="table table-hover">
-                            <thead>
-                            <tr>
-                                <th></th>
-                                {% for column, display_name in {
-                                'id': 'ID',
-                                'actual_plan_date': 'Срок до',
-                                'description': 'Описание',
-                                'task_type_id': 'Тип',
-                                'object_id': 'Объект',
-                                'supplier_id': 'Постановщик',
-                                'supervisor_id': 'Руководитель',
-                                'executor_id': 'Исполнитель',
-                                'status': 'Статус'
-                                }.items() %}
-                                <th>
-                                    <a href="?status_filter={{ status_filter }}&sort_column={{ column }}&sort_order={% if sort_column == column and sort_order == 'asc' %}desc{% else %}asc{% endif %}&page={{ page }}&page_size={{ page_size }}"
-                                       class="sortable-header">
-                                        {% if sort_column == column %}
-                                        {% if sort_order == 'asc' %}
-                                        {{ display_name }}<i class="bi bi-arrow-up"></i>
-                                        {% else %}
-                                        {{ display_name }}<i class="bi bi-arrow-down"></i>
-                                        {% endif %}
-                                        {% else %}{{ display_name }}
-                                        {% endif %}
-                                    </a>
-                                </th>
-                                {% endfor %}
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {% for task in tasks %}
-                            <tr onclick="window.location.href='{{ url_for('view_task', task_id=task.id) }}'"
-                                style="cursor:pointer;"
-                                class="{% if task.is_active %} {% if task.days_remain < 0 %}table-danger{% elif task.days_remain <= 3 %}table-warning{% endif %}{% endif %}">
-                                <td>{% if task.important %}
-                                    <i class="bi bi-exclamation-lg text-danger"></i>
-                                    {% endif %}
-                                </td>
-                                <td>{{ task.id }}</td>
-                                <td class="utc-time" data-utc-time="{{ task.time_updated.isoformat() }}">
-                                    {{ task.actual_plan_date.strftime('%d.%m.%y') }}
-                                </td>
-                                <td>{{ task.description }}</td>
-                                <td>{{ task.task_type.name }}</td>
-                                <td>{{ task.object.name }}</td>
-                                <td>{{ task.supplier.name }}</td>
-                                <td>{{ task.supervisor.name }}</td>
-                                <td>{{ task.executor.name }}</td>
-                                <td>{{ task.status.value }}</td>
-                            </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            <div class="table-responsive">
+                <table id="tasksTable" class="table table-hover">
+                    <thead>
+                    <tr>
+                        <th></th>
+                        {% for column, display_name in {
+                        'id': 'ID',
+                        'actual_plan_date': 'Срок до',
+                        'description': 'Описание',
+                        'task_type_id': 'Тип',
+                        'object_id': 'Объект',
+                        'supplier_id': 'Постановщик',
+                        'supervisor_id': 'Руководитель',
+                        'executor_id': 'Исполнитель',
+                        'status': 'Статус'
+                        }.items() %}
+                        <th>
+                            <a href="?status_filter={{ status_filter }}&sort_column={{ column }}&sort_order={% if sort_column == column and sort_order == 'asc' %}desc{% else %}asc{% endif %}&page={{ page }}&page_size={{ page_size }}"
+                               class="sortable-header">
+                                {% if sort_column == column %}
+                                {% if sort_order == 'asc' %}
+                                {{ display_name }}<i class="bi bi-arrow-up"></i>
+                                {% else %}
+                                {{ display_name }}<i class="bi bi-arrow-down"></i>
+                                {% endif %}
+                                {% else %}{{ display_name }}
+                                {% endif %}
+                            </a>
+                        </th>
+                        {% endfor %}
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for task in tasks %}
+                    <tr onclick="window.location.href='{{ url_for('view_task', task_id=task.id) }}'"
+                        style="cursor:pointer;"
+                        class="{% if task.is_active %} {% if task.days_remain < 0 %}table-danger{% elif task.days_remain <= 3 %}table-warning{% endif %}{% endif %}">
+                        <td>{% if task.important %}
+                            <i class="bi bi-exclamation-lg text-danger"></i>
+                            {% endif %}
+                        </td>
+                        <td>{{ task.id }}</td>
+                        <td>{{ task.actual_plan_date.strftime('%d.%m.%y') }}</td>
+                        <td>{{ task.description }}</td>
+                        <td>{{ task.task_type.name }}</td>
+                        <td>{{ task.object.name }}</td>
+                        <td>{{ task.supplier.name }}</td>
+                        <td>{{ task.supervisor.name }}</td>
+                        <td>{{ task.executor.name }}</td>
+                        <td>{{ task.status.value }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

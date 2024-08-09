@@ -74,7 +74,7 @@ async def telegram_callback(
 async def logout(request: Request):
     user_id, device_id = await redis.check_token(request)
     if user_id:
-        redis.delete_token(user_id, device_id)
+        await redis.delete_token(user_id, device_id)
     response = RedirectResponse('/')
     response.delete_cookie(key=COOKIE_AUTH)
     return response
