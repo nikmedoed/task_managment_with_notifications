@@ -18,9 +18,22 @@ router = APIRouter()
 
 # todo  переименование и архивирование
 
+def get_directory_size(directory: str) -> int:
+    """Рекурсивно считает размер всех файлов в указанной директории."""
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(directory):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            if os.path.exists(fp):
+                total_size += os.path.getsize(fp)
+    return total_size
+
 def get_disk_space_info(directory: str = "documents"):
     base_directory = os.path.abspath(directory)
-    total, used, free = shutil.disk_usage(base_directory)
+    _, _, free = shutil.disk_usage(base_directory)
+
+    used = get_directory_size(base_directory)
+    total = free + used
     return {
         'total': total,
         'used': used,
