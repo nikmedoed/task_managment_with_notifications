@@ -1,5 +1,6 @@
 from ._base import BaseModel
-from .comments import Comment, CommentType, UserRole
+from .comments import Comment, CommentType
+from ._user_roles import UserRole
 from .documents import Document
 from .objects import Object
 from .organizations import Organization

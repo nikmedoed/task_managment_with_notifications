@@ -1,7 +1,5 @@
 import os
 from starlette.requests import Request
-from database import async_dbsession
-from sqlalchemy.ext.asyncio import AsyncSession
 from shared.app_config import app_config
 from .utils.RedisStore import RedisTokenManager
 
@@ -11,12 +9,6 @@ redis = RedisTokenManager(**app_config.redis.dict(), jwt_secret_key=app_config.t
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
-
-
-async def get_db() -> AsyncSession:
-    async with async_dbsession() as session:
-        yield session
-
 
 STATIC_DIR = os.path.join(BASE_DIR, "templates/static")
 os.makedirs(STATIC_DIR, exist_ok=True)

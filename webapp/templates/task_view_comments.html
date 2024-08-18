@@ -25,9 +25,6 @@
         {% endif %}
         {% endif %}
 
-        {% if comment.type == CommentType.error %}
-        <span class="text-danger">{{ comment.content | replace('\n', '<br>') | safe }}</span>
-        {% else %}
         <small>
             {% if comment.type == CommentType.status_change %}
             :: Статус "{{ Statuses[comment.previous_status].value }}" <i class="bi bi-arrow-right"/></i> "{{
@@ -45,12 +42,15 @@
                    data-bs-original-title="{{ comment.extra_data['new_user']['position'] }}">{{ comment.extra_data['new_user']['name'] }}</span>"
             {% endif %}
         </small>
-        {% endif %}
     </div>
     <div style="margin-left:20px">
+
         {% if comment.content %}
+        <span class="{{ 'text-danger' if comment.type == CommentType.error else '' }}">
         {{ comment.content | replace('\n', '<br>') | safe }}
+        </span>
         {% endif %}
+
 
         {% if comment.documents %}
         <div class="documents">

@@ -34,12 +34,7 @@
                 </p>
                 <p>
                     <strong>Срок до (включительно):</strong>
-                    {% if task.actual_plan_date == task.initial_plan_date %}
-                    {{ task.actual_plan_date.strftime('%d.%m.%Y') }}
-                    {% else %}
-                    {{ task.actual_plan_date.strftime('%d.%m.%Y') }} (план {{
-                    task.initial_plan_date.strftime('%d.%m.%Y') }} {{ ' {:+}д.'.format(task.plan_date_shift) }})
-                    {% endif %}
+                    {{ task.formatted_plan_date }}
                     <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#updateDateModal"><i
                             class="bi bi-pencil-square"></i></a>
                 </p>

@@ -7,7 +7,9 @@ from sqlalchemy import (Column, Integer, ForeignKey, DateTime, Text,
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, aliased
+
 from ._base import BaseModel
+from ._user_roles import UserRole
 from .statuses import (Statuses, COMPLETED_STATUSES, SUPERVISOR_STATUSES, EXECUTOR_STATUSES, SUPPLIER_STATUSES,
                        is_valid_transition)
 
@@ -121,3 +123,27 @@ class Task(BaseModel):
             .correlate(cls)
             .scalar_subquery()
         )
+
+    def get_user_roles(self, user_id: int):
+        roles = set()
+        if user_id == self.supplier_id:
+            roles.add(UserRole.SUPPLIER)
+        if user_id == self.executor_id:
+            roles.add(UserRole.EXECUTOR)
+        if user_id == self.supervisor_id:
+            roles.add(UserRole.SUPERVISOR)
+        if not roles:
+            roles.add(UserRole.GUEST)
+        return roles
+
+    @property
+    def formatted_plan_date(self) -> str:
+        if self.actual_plan_date == self.initial_plan_date:
+            return self.actual_plan_date.strftime('%d.%m.%Y')
+        else:
+            plan_date_shift = (self.actual_plan_date - self.initial_plan_date).days
+            return (
+                f"{self.actual_plan_date.strftime('%d.%m.%Y')} "
+                f"(план {self.initial_plan_date.strftime('%d.%m.%Y')} "
+                f"{plan_date_shift:+}д.)"
+            )

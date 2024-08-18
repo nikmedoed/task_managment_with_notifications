@@ -8,12 +8,11 @@ from fastapi import FastAPI, Request, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
 import webapp.filters
-from database import async_dbsession
-from database.models import User
-from webapp.deps import get_db, redis, BASE_DIR, templates, generate_static_template
+from database import async_dbsession, get_db
+from shared.db import get_user_by_tg
+from webapp.deps import redis, BASE_DIR, templates, generate_static_template
 from webapp.endpoints import auth, register, tasks
 from webapp.endpoints import tasks
 from webapp.errors import error_handlers, render_unactive, render_unverificated
@@ -88,8 +87,7 @@ def create_app() -> FastAPI:
                 return await auth.login(request, next_path=url_safe_path)
 
             async with async_dbsession() as session:
-                result = await session.execute(select(User).filter(User.telegram_id == user_id))
-                user = result.scalars().first()
+                user = await get_user_by_tg(user_id, session)
             if not user:
                 return await auth.login(request, next_path=url_safe_path)
 

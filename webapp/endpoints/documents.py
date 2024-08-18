@@ -10,7 +10,8 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
 
 from database.models import Document, Comment
-from webapp.deps import get_db, templates
+from webapp.deps import templates
+from database import get_db
 from webapp.schemas import BulkDeleteRequest
 
 router = APIRouter()

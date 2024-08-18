@@ -1,23 +1,26 @@
-from fastapi import FastAPI
-from webapp import create_app
-# from telegram_bot.bot import start_bot
 import asyncio
+
+import uvicorn
+
+from shared.app_config import app_config
+from telegram_bot.bot import start_bot
+from webapp import create_app
 
 app = create_app()
 
-# @app.on_event("startup")
-# async def startup_event():
-#     # Вставьте код для инициализации приложения, например, создание таблиц, если они не существуют
-#     pass
-#
-# @app.on_event("shutdown")
-# async def shutdown_event():
-#     # Вставьте код для завершения работы приложения, если это необходимо
-#     pass
+
+async def run_fastapi():
+    config = uvicorn.Config(app, host=app_config.host, port=app_config.port, log_level=app_config.log_level)
+    server = uvicorn.Server(config)
+    await server.serve()
+
+
+async def main():
+    await asyncio.gather(
+        run_fastapi(),
+        start_bot(),
+    )
+
 
 if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=80, log_level="debug")
-    # loop = asyncio.get_event_loop()
-    # loop.create_task(start_bot())
+    asyncio.run(main())

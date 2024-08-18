@@ -40,3 +40,8 @@ class DatabaseSessionManager:
 db_manager = DatabaseSessionManager(echo=app_config.database.echo, expire_on_commit=False)
 
 async_dbsession: async_sessionmaker[AsyncSession] = db_manager.get_sessionmaker()
+
+
+async def get_db() -> AsyncSession:
+    async with async_dbsession() as session:
+        yield session

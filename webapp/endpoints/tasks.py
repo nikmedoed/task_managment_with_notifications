@@ -10,28 +10,21 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import joinedload
 
+from database import get_db
 from database.models import Task, Comment, CommentType, Document
-from database.models import TaskType, Object, User
+from database.models import User
 from database.models.statuses import *
-from webapp.deps import get_db
+from shared.db import get_task_by_id, get_task_edit_common_data, get_user_tasks
 from webapp.deps import templates
 from webapp.schemas import TaskCreate
 
 router = APIRouter()
 
 
-async def get_common_data(db: AsyncSession):
-    task_types = (await db.execute(select(TaskType).filter(TaskType.active == True))).scalars().all()
-    objects = (await db.execute(select(Object).filter(Object.active == True))).scalars().all()
-    users = (await db.execute(select(User).filter(User.active == True).order_by(User.last_name))).scalars().all()
-    return {"task_types": task_types, "objects": objects, "users": users}
-
-
 @router.get("/add", response_class=HTMLResponse)
 async def add_task(request: Request, db: AsyncSession = Depends(get_db)):
-    common_data = await get_common_data(db)
+    common_data = await get_task_edit_common_data(db)
     return templates.TemplateResponse("forms/task.html", {
         "request": request,
         "title": "Создание задачи",
@@ -75,7 +68,7 @@ async def create_task(
         await db.commit()
         await db.refresh(new_task)
     except (ValidationError, Exception) as e:
-        common_data = await get_common_data(db)
+        common_data = await get_task_edit_common_data(db)
         errors = e.errors() if isinstance(e, ValidationError) else [{"msg": str(e), "loc": ["database"]}]
         return templates.TemplateResponse("forms/task.html", {
             "request": request,
@@ -91,65 +84,34 @@ async def create_task(
 @router.get("", response_class=HTMLResponse)
 async def list_tasks(request: Request, db: AsyncSession = Depends(get_db)):
     user = request.state.user
-    user_tz = request.state.timezone
-
-    base_query = select(Task).options(
-        joinedload(Task.task_type),
-        joinedload(Task.object)
-    )
-
-    supplier_tasks = (await db.execute(
-        base_query.filter(Task.supplier_id == user.id, Task.filter_for_supplier())
-    )).scalars().all()
-
-    supervisor_tasks = (await db.execute(
-        base_query.filter(Task.supervisor_id == user.id, Task.filter_for_supervisor())
-    )).scalars().all()
-
-    executor_tasks = (await db.execute(
-        base_query.filter(Task.executor_id == user.id, Task.filter_for_executor())
-    )).scalars().all()
+    tasks = await get_user_tasks(user.id, db)
 
     return templates.TemplateResponse("tasks.html", {
         "request": request,
-        "supplier_tasks": supplier_tasks,
-        "supervisor_tasks": supervisor_tasks,
-        "executor_tasks": executor_tasks
+        **tasks
     })
 
 
 @router.get("/{task_id}", response_class=HTMLResponse)
 async def view_task(request: Request, task_id: int, db: AsyncSession = Depends(get_db)):
-    query = (
-        select(Task)
-        .options(
-            joinedload(Task.task_type),
-            joinedload(Task.object),
-            joinedload(Task.comments).joinedload(Comment.user),
-            joinedload(Task.comments).joinedload(Comment.documents)
-        )
-        .filter(Task.id == task_id)
-    )
-
-    result = await db.execute(query)
-    task = result.unique().scalar_one_or_none()
+    task = await get_task_by_id(task_id, db)
 
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    common_data = await get_common_data(db)
-    user_roles = get_user_roles(request.state.user, task)
+    # common_data = await get_task_edit_common_data(db)
+    users = (await db.execute(select(User).filter(User.active == True).order_by(User.last_name))).scalars().all()
+    user_roles = task.get_user_roles(request.state.user.id)
 
     available_statuses = {status for role in user_roles for status in
                           ROLE_STATUS_TRANSITIONS.get(role, {}).get(task.status, set())}
     available_statuses_dict = {status.name: status.value for status in available_statuses}
 
-    task.comments.sort(key=lambda x: x.time_updated, reverse=True)
-
     return templates.TemplateResponse("task_view.html", {
         "request": request,
         "task": task,
-        **common_data,
+        # **common_data,
+        'users': users,
         "is_supplier": UserRole.SUPPLIER in user_roles,
         "is_executor": UserRole.EXECUTOR in user_roles,
         "is_supervisor": UserRole.SUPERVISOR in user_roles,
@@ -172,7 +134,8 @@ async def update_plan_date(
     if not task:
         raise HTTPException(status_code=404, detail="Задача не найдена")
 
-    if UserRole.EXECUTOR in get_user_roles(request.state.user, task):
+    roles = task.get_user_roles(request.state.user.id)
+    if UserRole.EXECUTOR in roles:
         if not executor_comment:
             raise HTTPException(status_code=400, detail="Комментарий обязателен для изменения даты исполнителем")
 
@@ -184,7 +147,7 @@ async def update_plan_date(
         type=CommentType.date_change,
         task_id=task.id,
         user_id=request.state.user.id,
-        author_roles=list(get_user_roles(request.state.user, task)),
+        author_roles=list(roles),
         old_date=old_plan_date,
         new_date=task.actual_plan_date,
         content=executor_comment or ""
@@ -201,12 +164,12 @@ async def duplicate_task(request: Request, task_id: int, db: AsyncSession = Depe
     if not task:
         raise HTTPException(status_code=404, detail="Задача не найдена")
     if task.status != Statuses.CANCELED:
-        if UserRole.SUPPLIER not in get_user_roles(request.state.user, task):
+        if UserRole.SUPPLIER not in task.get_user_roles(request.state.user.id):
             raise HTTPException(status_code=400, detail="Недопустимый переход статуса")
         task.status = Statuses.CANCELED
         await db.commit()
     await task.set_cancel_if_not(db)
-    common_data = await get_common_data(db)
+    common_data = await get_task_edit_common_data(db)
     return templates.TemplateResponse("forms/task.html", {
         "request": request,
         **common_data,
@@ -250,7 +213,7 @@ async def update_role(
                     type=CommentType.status_change,
                     task_id=task.id,
                     user_id=request.state.user.id,
-                    author_roles=list(get_user_roles(request.state.user, task)),
+                    author_roles=list(task.get_user_roles(request.state.user.id)),
                     previous_status=previous_status.name,
                     new_status=Statuses.PLANNING.name
                 )
@@ -268,7 +231,7 @@ async def update_role(
             type=CommentType.user_change,
             task_id=task.id,
             user_id=request.state.user.id,
-            author_roles=list(get_user_roles(request.state.user, task)),
+            author_roles=list(task.get_user_roles(request.state.user.id)),
             extra_data={
                 "role": role,
                 "old_user": {
@@ -313,7 +276,7 @@ async def update_task_status(
     if status_enum in {Statuses.REWORK, Statuses.REJECTED} and not status_comment:
         raise HTTPException(status_code=400, detail="Комментарий обязателен для этого статуса")
 
-    user_roles = get_user_roles(user, task)
+    user_roles = task.get_user_roles(user.id)
     if not is_valid_transition(task.status, status_enum, user_roles):
         raise HTTPException(status_code=400, detail="Недопустимый переход статуса")
     task.status = status_enum
@@ -322,7 +285,7 @@ async def update_task_status(
         type=CommentType.status_change,
         task_id=task.id,
         user_id=user.id,
-        author_roles=list(get_user_roles(request.state.user, task)),
+        author_roles=list(user_roles),
         content=status_comment or "",
         previous_status=previous_status.name,
         new_status=status_enum.name
@@ -359,7 +322,7 @@ async def add_comment(
         type=CommentType.comment,
         task_id=task_id,
         user_id=user.id,
-        author_roles=list(get_user_roles(request.state.user, task)),
+        author_roles=list(task.get_user_roles(request.state.user.id)),
         content=comment,
         new_date=datetime.utcnow()
     )
@@ -384,16 +347,3 @@ async def add_comment(
     await db.commit()
     await db.refresh(new_comment)
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
-
-
-def get_user_roles(user, task):
-    roles = set()
-    if user.id == task.supplier_id:
-        roles.add(UserRole.SUPPLIER)
-    if user.id == task.executor_id:
-        roles.add(UserRole.EXECUTOR)
-    if user.id == task.supervisor_id:
-        roles.add(UserRole.SUPERVISOR)
-    if not roles:
-        roles.add(UserRole.GUEST)
-    return roles

@@ -3,24 +3,14 @@ from typing import List, TYPE_CHECKING
 
 from sqlalchemy import Column, Integer, Text, ForeignKey, JSON, DateTime, String, Enum
 from sqlalchemy.orm import relationship, Mapped
-from sqlalchemy.ext.declarative import declared_attr
 
+from ._user_roles import UserRole
 from ._base import BaseModel
 
 if TYPE_CHECKING:
     from .tasks import Task
     from .documents import Document
     from .users import User
-
-
-class UserRole(str, enum.Enum):
-    SUPPLIER = "Постановщик"
-    EXECUTOR = "Исполнитель"
-    SUPERVISOR = "Руководитель"
-    GUEST = 'Гость'
-
-    def __str__(self):
-        return self.value
 
 
 class CommentType(enum.Enum):

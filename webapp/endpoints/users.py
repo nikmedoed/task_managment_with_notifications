@@ -6,7 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from database.models import User
-from webapp.deps import get_db, templates
+from webapp.deps import templates
+from database import get_db
 from webapp.schemas import UserSchema
 
 router = APIRouter()

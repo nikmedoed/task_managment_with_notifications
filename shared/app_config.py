@@ -43,13 +43,26 @@ class RedisConfig(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix='REDIS_', env_file=DOTENV_PATH, extra='ignore')
 
+    @property
+    def url(self) -> str:
+        protocol = "rediss" if self.secure else "redis"
+        if self.password:
+            return f"{protocol}://{self.password}@{self.host}:{self.port}/{self.db}"
+        return f"{protocol}://{self.host}:{self.port}/{self.db}"
+
 
 class AppConfig(BaseSettings):
+    developing: bool = False
+    port: int = 8000
+    host: str = '0.0.0.0'
+    log_level: str = 'info'
+    domain: str='http://127.0.0.1'
+
     database: DatabaseConfig = DatabaseConfig()
     telegram: TelegramConfig = TelegramConfig()
     redis: RedisConfig = RedisConfig()
 
-    model_config = SettingsConfigDict(env_file=DOTENV_PATH, extra='ignore')
+    model_config = SettingsConfigDict(env_prefix='APP_', env_file=DOTENV_PATH, extra='ignore')
 
 
 def load_config() -> AppConfig:

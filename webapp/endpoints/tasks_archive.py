@@ -14,7 +14,8 @@ from starlette.responses import HTMLResponse
 
 from database.models import Task
 from database.models.statuses import COMPLETED_STATUSES, Statuses
-from webapp.deps import get_db, templates
+from webapp.deps import templates
+from database import get_db
 
 router = APIRouter()
 

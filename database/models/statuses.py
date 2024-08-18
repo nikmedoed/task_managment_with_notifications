@@ -3,7 +3,7 @@ from enum import Enum
 from sqlalchemy import Column, String, Boolean, Text
 
 from ._base import BaseModel
-from .comments import UserRole
+from . import UserRole
 
 
 class Status(BaseModel):
