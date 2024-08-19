@@ -7,8 +7,8 @@ from sqlalchemy import cast, Date, and_, select
 from sqlalchemy.orm import joinedload
 
 from database import async_dbsession
-from database.models import (Task, COMPLETED_STATUSES, Comment, SUPPLIER_STATUSES,
-                             SUPERVISOR_STATUSES, EXECUTOR_STATUSES)
+from database.models import (Task, NOTIFICATION_STATUSES, Comment,
+                             SUPPLIER_STATUSES, SUPERVISOR_STATUSES, EXECUTOR_STATUSES)
 from telegram_bot.utils.send_tasks import get_telegram_task_text, send_task_message
 
 
@@ -40,7 +40,7 @@ async def notify_user_tasks(bot: Bot = None):
     ).filter(
         and_(
             cast(Task.actual_plan_date, Date).in_(date_ranges),
-            Task.status.notin_(COMPLETED_STATUSES)
+            Task.status.notin_(NOTIFICATION_STATUSES)
         )
     ).order_by(Task.actual_plan_date)
 

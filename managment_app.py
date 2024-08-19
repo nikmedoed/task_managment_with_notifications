@@ -3,7 +3,7 @@ import asyncio
 import uvicorn
 
 from shared.app_config import app_config
-from telegram_bot.bot import start_bot
+from telegram_bot import start_bot
 from webapp import create_app
 
 app = create_app()
