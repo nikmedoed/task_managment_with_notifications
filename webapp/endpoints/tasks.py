@@ -15,7 +15,7 @@ from database import get_db
 from database.models import Task, Comment, CommentType, Document
 from database.models import User
 from database.models.statuses import *
-from shared.db import get_task_by_id, get_task_edit_common_data, get_user_tasks
+from shared.db import get_task_by_id, get_task_edit_common_data, get_user_tasks, add_comment
 from webapp.deps import templates
 from webapp.schemas import TaskCreate
 
@@ -299,7 +299,7 @@ async def update_task_status(
 
 
 @router.post("/{task_id}/comment", response_class=HTMLResponse)
-async def add_comment(
+async def add_comment_web(
         request: Request,
         task_id: int,
         comment: Optional[str] = Form(None),
@@ -318,16 +318,7 @@ async def add_comment(
     if not comment or comment.strip() == "":
         raise HTTPException(status_code=400, detail="Комментарий не может быть пустым")
 
-    new_comment = Comment(
-        type=CommentType.comment,
-        task_id=task_id,
-        user_id=user.id,
-        author_roles=list(task.get_user_roles(request.state.user.id)),
-        content=comment,
-        new_date=datetime.utcnow()
-    )
-    db.add(new_comment)
-    await db.flush()
+    new_comment = await add_comment(task, user, comment, db)
 
     for file in files:
         if file.filename:
