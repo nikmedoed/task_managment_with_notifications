@@ -1,12 +1,13 @@
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from database import async_dbsession
 from database.models import UserRole, User
 from shared.app_config import app_config
 from shared.db import get_user_tasks, get_task_by_id
-from telegram_bot.utils.send_tasks import send_task
+from telegram_bot.utils.send_tasks import send_new_task_message, get_telegram_task_text
+from telegram_bot.utils.split_by_limit import split_message_by_limit
 
 router = Router()
 
@@ -15,31 +16,11 @@ commands = {
 }
 
 DESCRIPTION_TRIM_SIZE = 65
-MESSAGE_MAX_LENGTH = 4096
-
-
-def split_message_by_limit(blocks: list[str]) -> list[str]:
-    start_idx = 0
-    current_length = 0
-    messages = []
-    for i, part in enumerate(blocks):
-        part_length = len(part) + 1
-        if current_length + part_length > MESSAGE_MAX_LENGTH:
-            messages.append("\n".join(blocks[start_idx:i]))
-            start_idx = i
-            current_length = 0
-        current_length += part_length
-
-    if start_idx < len(blocks):
-        messages.append("\n".join(blocks[start_idx:]))
-
-    return messages
 
 
 @router.message(Command(commands=["tasks"]))
-async def list_tasks(message: Message, user: User):
-    async with async_dbsession() as db:
-        tasks = await get_user_tasks(user.id, db)
+async def list_tasks(message: Message, user: User, db: AsyncSession):
+    tasks = await get_user_tasks(user.id, db)
 
     result = [f"<a href='{app_config.domain}/tasks'>Активные задачи пользователя</a>\n{user.full_name}"]
 
@@ -63,15 +44,15 @@ async def list_tasks(message: Message, user: User):
 
     messages = split_message_by_limit(result)
     for mes in messages:
-        await message.answer(mes, parse_mode="HTML")
+        await message.answer(mes)
 
 
 @router.message(lambda message: message.text and message.text.lstrip('/').isdigit())
-async def handle_task_by_id(message: Message, user: User):
+async def handle_task_by_id(message: Message, db: AsyncSession, user: User):
     task_id = int(message.text.lstrip('/'))
-    async with async_dbsession() as db:
-        task = await get_task_by_id(task_id, db)
-        if not task:
-            return await message.reply("Задача не найдена.")
+    task = await get_task_by_id(task_id, db)
+    if not task:
+        return await message.reply("Задача не найдена.")
+    task_info = get_telegram_task_text(task)
 
-    await send_task(task, message)
+    await send_new_task_message(task_info, task, user, message=message, db=db)

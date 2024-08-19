@@ -1,13 +1,18 @@
-from typing import Union
+import logging
 
-from aiogram.types import Message
 from aiogram import Bot
+from aiogram.exceptions import TelegramAPIError
+from aiogram.types import Message, InlineKeyboardMarkup
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models import Task, User, CommentType, Statuses
+from database.db_sessionmaker import get_db
+from database.models import Task, User, CommentType, Statuses, TaskNotification
 from shared.app_config import app_config
+from shared.db import add_error, add_notification
 
 
-async def send_task(task: Task, target: Union[User, Message], event: str = "", bot: Bot = None) -> Message:
+def get_telegram_task_text(task: Task, event: str = "") -> str:
     task_info = (
         f"<b>№ п/п:</b> {task.id}{' ❗️<b>важная</b>' if task.important else ''}\n"
         f"<b>Создано:</b> {task.time_created.strftime('%d.%m.%Y')}\n"
@@ -76,19 +81,64 @@ async def send_task(task: Task, target: Union[User, Message], event: str = "", b
                 break
 
         task_info = f"{task_info}\n\n<b>Последние комментарии</b>\n\n{'\n\n'.join(comments)}"
+    return task_info
 
-    if isinstance(target, Message):
-        return await target.answer(
-            task_info,
-            parse_mode="HTML",
-            disable_web_page_preview=True
-        )
-    else:
-        if not bot:
-            from telegram_bot.bot import bot
-        return await bot.send_message(
-            chat_id=target.telegram_id,
-            text=task_info,
-            parse_mode="HTML",
-            disable_web_page_preview=True
-        )
+
+async def send_new_task_message(text: str, task: Task, user: User,
+                                message: Message = None,
+                                db: AsyncSession = None,
+                                markup: InlineKeyboardMarkup = None,
+                                bot: Bot = None) -> Message:
+    if db is None:
+        db = await anext(get_db())
+    await clean_sent_task_descriptions(task.id, db, user_id=user.id, bot=bot)
+    try:
+        if message:
+            message = await message.answer(
+                text,
+                reply_markup=markup
+            )
+        else:
+            if not bot:
+                if message:
+                    bot = message.bot
+                else:
+                    from telegram_bot.bot import bot
+            message = await bot.send_message(
+                chat_id=user.telegram_id,
+                text=text,
+                reply_markup=markup
+            )
+        await add_notification(task, user.id, message.message_id, db)
+        return message
+    except TelegramAPIError as e:
+        logging.error(f"Failed to send message to {user.telegram_id} for task {task.id}: {e}")
+        await add_error(task.id, user.id, f"Ошибка отправки уведомления:\n{e}", db)
+
+
+async def clean_sent_task_descriptions(task_id, db: AsyncSession,
+                                       user_id: int = None, bot: Bot = None):
+    if not bot:
+        from telegram_bot.bot import bot
+
+    query = select(TaskNotification).filter_by(task_id=task_id, active=True)
+    if user_id is not None:
+        query = query.filter_by(user_id=user_id)
+
+    notifications = (await db.execute(query)).scalars().all()
+
+    for notification in notifications:
+        try:
+            await bot.delete_message(notification.user.telegram_id, notification.telegram_message_id)
+            notification.active = False
+        except TelegramAPIError as e:
+            err = str(e)
+            if 'message to delete not found' in err:
+                notification.active = False
+            else:
+                logging.error(
+                    f"Failed to delete message {notification.telegram_message_id} "
+                    f"for user {notification.user.telegram_id}: {err}")
+                await add_error(task_id, notification.user_id, f"Ошибка удаления устаревшего уведомления:\n{err}", db)
+                continue
+        await db.commit()

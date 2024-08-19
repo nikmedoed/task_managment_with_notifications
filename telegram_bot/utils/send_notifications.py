@@ -3,15 +3,13 @@ import logging
 from datetime import datetime, timedelta
 
 from aiogram import Bot
-from aiogram.exceptions import TelegramAPIError
-from sqlalchemy import cast, Date, and_
-from sqlalchemy import select
+from sqlalchemy import cast, Date, and_, select
 from sqlalchemy.orm import joinedload
 
 from database import async_dbsession
-from database.models import (Task, COMPLETED_STATUSES, TaskNotification, Comment, CommentType,
-                             SUPPLIER_STATUSES, SUPERVISOR_STATUSES, EXECUTOR_STATUSES)
-from telegram_bot.utils.send_tasks import send_task
+from database.models import (Task, COMPLETED_STATUSES, Comment, SUPPLIER_STATUSES,
+                             SUPERVISOR_STATUSES, EXECUTOR_STATUSES)
+from telegram_bot.utils.send_tasks import get_telegram_task_text, send_new_task_message
 
 
 def get_days_text(days_remain):
@@ -49,11 +47,6 @@ async def notify_user_tasks(bot: Bot = None):
     async with async_dbsession() as db:
         tasks = (await db.execute(tasks_query)).scalars().unique().all()
 
-        async def save_error(tid, uid, err):
-            erc = Comment(type=CommentType.error, task_id=tid, user_id=uid, content=err)
-            db.add(erc)
-            await db.commit()
-
         for task in tasks:
             days_remain = (task.actual_plan_date - now).days
             event_msg = (f"Напоминание о задаче со сроком через "
@@ -69,45 +62,9 @@ async def notify_user_tasks(bot: Bot = None):
                 logging.warning(f"No relevant user to notify about {task} from {days_remain} - {task.description}")
                 continue
 
-            try:
-                message = await send_task(task, user_to_notify, event=event_msg)
-            except TelegramAPIError as e:
-                logging.error(f"Failed to send message to {user_to_notify.telegram_id} for task {task.id}: {e}")
-                await save_error(task.id, user_to_notify.id,
-                                 f"Ошибка отправки уведомления:\n{e}")
-                continue
-
-            notifications = (await db.execute(
-                select(TaskNotification).filter_by(task_id=task.id, active=True)
-            )).scalars().all()
-
-            new_notification = TaskNotification(
-                task_id=task.id,
-                user_id=user_to_notify.id,
-                telegram_message_id=message.message_id,
-                active=True
-            )
-            db.add(new_notification)
-            task.notification_count += 1
-            await db.commit()
-
-            for notification in notifications:
-                try:
-                    await bot.delete_message(notification.user.telegram_id, notification.telegram_message_id)
-                    notification.active = False
-                except TelegramAPIError as e:
-                    err = str(e)
-                    if 'message to delete not found' in err:
-                        notification.active = False
-                    else:
-                        logging.error(
-                            f"Failed to delete message {notification.telegram_message_id} "
-                            f"for user {notification.user.telegram_id}: {err}")
-                        await save_error(task.id, user_to_notify.id,
-                                         f"Ошибка удаления устаревшего уведомления:\n{err}")
-                        continue
-
-            await db.commit()
+            task_info = get_telegram_task_text(task, event_msg)
+            markup = None
+            await send_new_task_message(task_info, task, user_to_notify, db=db, markup=markup, bot=bot)
             await asyncio.sleep(0.1)
 
 
