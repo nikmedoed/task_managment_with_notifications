@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from database import get_db
-from database.models import Task, Comment, TaskType, Object, User
+from database.models import Task, Comment, TaskType, Object, User, CommentType, TaskNotification
 
 
 async def get_user_by_tg(telegram_id: int, db: AsyncSession = Depends(get_db)):
@@ -32,7 +32,7 @@ async def get_task_by_id(task_id: int, db: AsyncSession = Depends(get_db)):
     return task
 
 
-async def get_task_edit_common_data(db: AsyncSession):
+async def get_task_edit_common_data(db: AsyncSession = Depends(get_db)):
     task_types = (await db.execute(select(TaskType).filter(TaskType.active == True))).scalars().all()
     objects = (await db.execute(select(Object).filter(Object.active == True))).scalars().all()
     users = (await db.execute(select(User).filter(User.active == True).order_by(User.last_name))).scalars().all()
@@ -62,3 +62,36 @@ async def get_user_tasks(user_id: int, db: AsyncSession = Depends(get_db)) -> Di
         "supervisor_tasks": supervisor_tasks,
         "executor_tasks": executor_tasks
     }
+
+
+async def add_error(tid: int, uid: int, err: str, db: AsyncSession = Depends(get_db)) -> Comment:
+    erc = Comment(type=CommentType.error, task_id=tid, user_id=uid, content=err)
+    db.add(erc)
+    await db.commit()
+    return erc
+
+
+async def add_comment(task: Task, user: User, comment: str, db: AsyncSession = Depends(get_db)) -> Comment:
+    new_comment = Comment(
+        type=CommentType.comment,
+        task_id=task.id,
+        user_id=user.id,
+        author_roles=list(task.get_user_roles(user.id)),
+        content=comment
+    )
+    db.add(new_comment)
+    await db.commit()
+    return new_comment
+
+
+async def add_notification(task: Task, user_id: int, message_id: int,
+                           db: AsyncSession = Depends(get_db)):
+    new_notification = TaskNotification(
+        task_id=task.id,
+        user_id=user_id,
+        telegram_message_id=message_id,
+        active=True
+    )
+    db.add(new_notification)
+    task.notification_count += 1
+    await db.commit()
