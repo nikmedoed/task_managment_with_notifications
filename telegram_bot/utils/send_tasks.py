@@ -1,10 +1,13 @@
+from typing import Union
+
 from aiogram.types import Message
+from aiogram import Bot
 
 from database.models import Task, User, CommentType, Statuses
 from shared.app_config import app_config
 
 
-async def send_task(message: Message, task: Task, user: User, event: str = "Пример"):
+async def send_task(task: Task, target: Union[User, Message], event: str = "", bot: Bot = None) -> Message:
     task_info = (
         f"<b>№ п/п:</b> {task.id}{' ❗️<b>важная</b>' if task.important else ''}\n"
         f"<b>Создано:</b> {task.time_created.strftime('%d.%m.%Y')}\n"
@@ -74,8 +77,18 @@ async def send_task(message: Message, task: Task, user: User, event: str = "Пр
 
         task_info = f"{task_info}\n\n<b>Последние комментарии</b>\n\n{'\n\n'.join(comments)}"
 
-    await message.answer(
-        task_info,
-        parse_mode="HTML",
-        disable_web_page_preview=True
-    )
+    if isinstance(target, Message):
+        return await target.answer(
+            task_info,
+            parse_mode="HTML",
+            disable_web_page_preview=True
+        )
+    else:
+        if not bot:
+            from telegram_bot.bot import bot
+        return await bot.send_message(
+            chat_id=target.telegram_id,
+            text=task_info,
+            parse_mode="HTML",
+            disable_web_page_preview=True
+        )

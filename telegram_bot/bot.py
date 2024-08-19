@@ -3,6 +3,7 @@ import logging
 import pkgutil
 from pathlib import Path
 
+import aiocron
 from aiogram import Bot, Dispatcher, types
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -11,9 +12,12 @@ from aiogram.types import BotCommand
 
 from shared.app_config import app_config
 from telegram_bot.middlewares import UserCheckMiddleware
+from telegram_bot.utils.send_notifications import notify_user_tasks
 
 logging.basicConfig(level=logging.getLevelName(app_config.log_level.upper()))
 logger = logging.getLogger(__name__)
+
+bot = Bot(token=app_config.telegram.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
 
 async def register_routers(dp: Dispatcher, bot: Bot):
@@ -37,8 +41,6 @@ async def register_routers(dp: Dispatcher, bot: Bot):
 
 
 async def start_bot():
-    bot = Bot(token=app_config.telegram.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-
     storage = RedisStorage.from_url(app_config.redis.url)
     dp = Dispatcher(storage=storage)
 
@@ -49,5 +51,7 @@ async def start_bot():
     async def error_handler(event: types.error_event.ErrorEvent):
         logger.error(f"Update: {event.update} \n{event.exception}", exc_info=True)
         return True
+
+    cron_job = aiocron.crontab('0 9 * * *', func=notify_user_tasks, start=True)
 
     await dp.start_polling(bot, skip_updates=False)

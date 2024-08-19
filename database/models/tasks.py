@@ -40,8 +40,8 @@ class Task(BaseModel):
     notification_count: int = Column(Integer, default=0, nullable=False)
     important: bool = Column(Boolean, nullable=False, default=False)
 
-    task_type: 'TaskType' = relationship('TaskType')
-    object: 'Object' = relationship('Object', back_populates='tasks')
+    task_type: 'TaskType' = relationship('TaskType', lazy='joined')
+    object: 'Object' = relationship('Object', back_populates='tasks', lazy='joined')
 
     supplier: 'User' = relationship('User', foreign_keys='Task.supplier_id',
                                     back_populates='tasks_as_supplier', lazy='joined')
@@ -49,6 +49,7 @@ class Task(BaseModel):
                                       back_populates='tasks_as_supervisor', lazy='joined')
     executor: 'User' = relationship('User', foreign_keys='Task.executor_id',
                                     back_populates='tasks_as_executor', lazy='joined')
+
     comments: List['Comment'] = relationship('Comment', back_populates='task',
                                              order_by='Comment.id')
     notifications: List['TaskNotification'] = relationship('TaskNotification',

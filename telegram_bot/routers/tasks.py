@@ -74,6 +74,4 @@ async def handle_task_by_id(message: Message, user: User):
         if not task:
             return await message.reply("Задача не найдена.")
 
-    await send_task(message, task, user)
-
-
+    await send_task(task, message)
