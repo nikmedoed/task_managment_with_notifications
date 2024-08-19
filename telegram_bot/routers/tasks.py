@@ -56,3 +56,4 @@ async def handle_task_by_id(message: Message, db: AsyncSession, user: User):
     task_info = get_telegram_task_text(task)
 
     await send_new_task_message(task_info, task, user, message=message, db=db)
+    await message.delete()

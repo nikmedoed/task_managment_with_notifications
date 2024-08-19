@@ -62,9 +62,9 @@ async def notify_user_tasks(bot: Bot = None):
                 logging.warning(f"No relevant user to notify about {task} from {days_remain} - {task.description}")
                 continue
 
-            task_info = get_telegram_task_text(task, event_msg)
+            text = get_telegram_task_text(task, event_msg)
             markup = None
-            await send_new_task_message(task_info, task, user_to_notify, db=db, markup=markup, bot=bot)
+            await send_new_task_message(text, task, user_to_notify, db=db, markup=markup, bot=bot)
             await asyncio.sleep(0.1)
 
 

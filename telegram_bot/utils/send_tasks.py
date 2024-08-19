@@ -3,18 +3,17 @@ import logging
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message, InlineKeyboardMarkup
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.db_sessionmaker import get_db
-from database.models import Task, User, CommentType, Statuses, TaskNotification
+from database.models import Task, User, CommentType, Statuses
 from shared.app_config import app_config
-from shared.db import add_error, add_notification
+from shared.db import add_error, add_notification, get_notifications
 
 
 def get_telegram_task_text(task: Task, event: str = "") -> str:
     task_info = (
-        f"<b>№ п/п:</b> {task.id}{' ❗️<b>важная</b>' if task.important else ''}\n"
+        f"<b>№ п/п:</b> /{task.id}{' ❗️<b>важная</b>' if task.important else ''}\n"
         f"<b>Создано:</b> {task.time_created.strftime('%d.%m.%Y')}\n"
         f"<b>Обновлено:</b> {task.time_updated.strftime('%d.%m.%Y')}\n"
         f"<b>Объект:</b> {task.object.name}\n"
@@ -121,12 +120,7 @@ async def clean_sent_task_descriptions(task_id, db: AsyncSession,
     if not bot:
         from telegram_bot.bot import bot
 
-    query = select(TaskNotification).filter_by(task_id=task_id, active=True)
-    if user_id is not None:
-        query = query.filter_by(user_id=user_id)
-
-    notifications = (await db.execute(query)).scalars().all()
-
+    notifications = await get_notifications(task_id, user_id, db)
     for notification in notifications:
         try:
             await bot.delete_message(notification.user.telegram_id, notification.telegram_message_id)

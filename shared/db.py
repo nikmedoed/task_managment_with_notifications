@@ -1,6 +1,8 @@
 from typing import Dict, Sequence
+from typing import Optional
 
 from fastapi import Depends
+from sqlalchemy import and_
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -82,6 +84,29 @@ async def add_comment(task: Task, user: User, comment: str, db: AsyncSession = D
     db.add(new_comment)
     await db.commit()
     return new_comment
+
+
+async def get_notifications(
+        task_id: int,
+        user_id: Optional[int] = None,
+        db: AsyncSession = Depends(get_db)
+) -> Sequence[TaskNotification]:
+    query = (
+        select(TaskNotification)
+        .where(
+            and_(
+                TaskNotification.task_id == task_id,
+                TaskNotification.active
+            )
+        )
+    )
+    if user_id is not None:
+        query = query.where(TaskNotification.user_id == user_id)
+    query = query.order_by(TaskNotification.telegram_message_id)
+
+    result = await db.execute(query)
+    notifications = result.scalars().all()
+    return notifications
 
 
 async def add_notification(task: Task, user_id: int, message_id: int,
