@@ -9,7 +9,7 @@ from sqlalchemy.orm import joinedload
 from database import async_dbsession
 from database.models import (Task, COMPLETED_STATUSES, Comment, SUPPLIER_STATUSES,
                              SUPERVISOR_STATUSES, EXECUTOR_STATUSES)
-from telegram_bot.utils.send_tasks import get_telegram_task_text, send_new_task_message
+from telegram_bot.utils.send_tasks import get_telegram_task_text, send_task_message
 
 
 def get_days_text(days_remain):
@@ -64,7 +64,7 @@ async def notify_user_tasks(bot: Bot = None):
 
             text = get_telegram_task_text(task, event_msg)
             markup = None
-            await send_new_task_message(text, task, user_to_notify, db=db, markup=markup, bot=bot)
+            await send_task_message(text, task, user_to_notify, db=db, markup=markup, bot=bot, may_edit=False)
             await asyncio.sleep(0.1)
 
 

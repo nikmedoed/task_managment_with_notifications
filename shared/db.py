@@ -30,7 +30,7 @@ async def get_task_by_id(task_id: int, db: AsyncSession = Depends(get_db)):
 
     result = await db.execute(query)
     task = result.unique().scalar_one_or_none()
-    task.comments.sort(key=lambda x: x.time_updated, reverse=True)
+    task.comments.sort(key=lambda x: x.time_created)
     return task
 
 

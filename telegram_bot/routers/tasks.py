@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import UserRole, User
 from shared.app_config import app_config
 from shared.db import get_user_tasks, get_task_by_id
-from telegram_bot.utils.send_tasks import send_new_task_message, get_telegram_task_text
+from telegram_bot.utils.send_tasks import send_task_message, get_telegram_task_text
 from telegram_bot.utils.split_by_limit import split_message_by_limit
 
 router = Router()
@@ -55,5 +55,5 @@ async def handle_task_by_id(message: Message, db: AsyncSession, user: User):
         return await message.reply("Задача не найдена.")
     task_info = get_telegram_task_text(task)
 
-    await send_new_task_message(task_info, task, user, message=message, db=db)
+    await send_task_message(task_info, task, user, user_message=message, db=db, may_edit=False)
     await message.delete()

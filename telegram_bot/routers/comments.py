@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.models import User, TaskNotification, Task
 from shared.db import add_comment, get_task_by_id, add_error
-from telegram_bot.utils.send_tasks import get_telegram_task_text, send_new_task_message
+from telegram_bot.utils.send_tasks import get_telegram_task_text, send_task_message
 
 router = Router()
 
@@ -61,12 +61,12 @@ async def handle_reply(message: Message, user: User, db: AsyncSession):
     for user in users:
         try:
             if user.telegram_id != telegram_id:
-                await send_new_task_message(task_info, task, user,
-                                            db=db, markup=markup, bot=bot)
+                await send_task_message(task_info, task, user,
+                                        db=db, markup=markup, bot=bot, may_edit=True)
             else:
-                await send_new_task_message(task_info, task, user,
-                                            db=db, message=message, bot=bot,
-                                            markup=markup)
+                await send_task_message(task_info, task, user,
+                                        db=db, user_message=message, bot=bot,
+                                        markup=None, may_edit=False)
                 await message.delete()
         except TelegramAPIError as e:
             logging.error(f"Failed to send message to {user.telegram_id} for task {task.id}: {e}")

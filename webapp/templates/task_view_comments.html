@@ -1,4 +1,4 @@
-{% for comment in task.comments %}
+{% for comment in task.comments|reverse %}
 <div class="comment mb-3">
     <div>
         {% if comment.type == CommentType.error %}
