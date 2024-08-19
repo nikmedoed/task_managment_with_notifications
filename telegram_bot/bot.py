@@ -11,13 +11,17 @@ from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import BotCommand
 
 from shared.app_config import app_config
-from telegram_bot.middlewares import UserCheckMiddleware
+from telegram_bot.middlewares import UserAndDBSessionCheckMiddleware
 from telegram_bot.utils.send_notifications import notify_user_tasks
 
 logging.basicConfig(level=logging.getLevelName(app_config.log_level.upper()))
 logger = logging.getLogger(__name__)
 
-bot = Bot(token=app_config.telegram.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+bot = Bot(token=app_config.telegram.token,
+          default=DefaultBotProperties(
+              parse_mode=ParseMode.HTML,
+              link_preview_is_disabled=True
+          ))
 
 
 async def register_routers(dp: Dispatcher, bot: Bot):
@@ -44,7 +48,7 @@ async def start_bot():
     storage = RedisStorage.from_url(app_config.redis.url)
     dp = Dispatcher(storage=storage)
 
-    dp.update.middleware(UserCheckMiddleware())
+    dp.update.middleware(UserAndDBSessionCheckMiddleware())
     await register_routers(dp, bot)
 
     @dp.error()
