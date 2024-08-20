@@ -1,28 +1,24 @@
 import asyncio
 import logging
-from typing import Optional
 
 from aiogram import Router, Bot, F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
-from sqlalchemy.ext.asyncio import AsyncSession
+from aiogram.types import CallbackQuery, Message
 
-from database.models import Task, Statuses, User, is_valid_transition, SHOULD_BE_COMMENTED, COMPLETED_STATUSES
+from database.models import is_valid_transition, SHOULD_BE_COMMENTED, COMPLETED_STATUSES
 from shared.app_config import app_config
-from shared.db import add_comment, status_change, get_task_by_id, get_notifications, add_error
-from telegram_bot.utils.keyboards import StatusChangeCallback, AcknowledgeCallback
+from shared.db import *
+from telegram_bot.utils.keyboards import *
 from telegram_bot.utils.notifications import send_notify
 from telegram_bot.utils.send_tasks import delete_notifications
 
 router = Router()
+TIME_TO_DELETE = 60
 
 
 class CommentStates(StatesGroup):
     waiting_for_comment = State()
-
-
-TIME_TO_DELETE = 60
 
 
 async def delete_message_after_delay(bot: Bot, chat_id: int, message_id: int):
@@ -131,11 +127,7 @@ async def handle_status_change(callback_query: CallbackQuery,
         sent_message = await callback_query.message.answer(
             f"Укажите причину установки статуса \"<b>{new_status.value}</b>\" (сообщением), "
             f"или нажмите отмена",
-            reply_markup=InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [InlineKeyboardButton(text="Отмена", callback_data="cancel")]
-                ]
-            ))
+            reply_markup=cancel_keyboard)
         await state.update_data(message_id=sent_message.message_id)
         await state.set_state(CommentStates.waiting_for_comment)
         await callback_query.answer("Обоснуйте")
@@ -163,7 +155,7 @@ async def receive_comment(message: Message, state: FSMContext):
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="Отправить", callback_data="submit_comment")],
-                [InlineKeyboardButton(text="Отменить", callback_data="cancel")]
+                [cancel_button]
             ]
         ))
 
@@ -185,21 +177,3 @@ async def submit_comment(callback_query: CallbackQuery, state: FSMContext, db: A
     if await run_status_change(task, user, new_status, db, bot, callback_query, comment):
         await callback_query.message.delete()
         await state.clear()
-
-
-@router.callback_query(F.data == "cancel", CommentStates.waiting_for_comment)
-async def cancel_comment(callback_query: CallbackQuery, state: FSMContext):
-    await callback_query.message.delete()
-    await callback_query.answer("Действие отменено")
-    await state.clear()
-
-
-@router.callback_query(AcknowledgeCallback.filter())
-async def handle_acknowledge(call: CallbackQuery, callback_data: AcknowledgeCallback, user: User, db: AsyncSession):
-    task: Optional[Task] = await db.get(Task, callback_data.task_id)
-    if not task:
-        await call.answer("Задача более недоступна в базе")
-        return
-    await add_comment(task, user, db=db)
-    await call.message.delete()
-    await call.answer("Записано")
