@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.models import Task, Statuses, User, is_valid_transition, SHOULD_BE_COMMENTED, COMPLETED_STATUSES
 from shared.app_config import app_config
-from shared.db import add_comment, status_change, get_task_by_id, get_notifications
+from shared.db import add_comment, status_change, get_task_by_id, get_notifications, add_error
 from telegram_bot.utils.keyboards import StatusChangeCallback, AcknowledgeCallback
 from telegram_bot.utils.notifications import send_notify
 from telegram_bot.utils.send_tasks import delete_notifications
@@ -39,10 +39,12 @@ async def run_status_change(task: Task, user: User, new_status: Statuses, db: As
     await callback_query.answer(f"Статус изменен на {new_status.value}")
 
     user_to_notify = task.whom_notify()
+
+    info = (f"Статус задачи /{task.id} успешно изменён\n"
+            f"\"<b>{previous_status}</b>\" → \"<b>{new_status.value}</b>\".\n\n")
     if new_status in COMPLETED_STATUSES:
         message = await callback_query.message.answer(
-            f"Статус задачи /{task.id} успешно изменён\n"
-            f"\"<b>{previous_status}</b>\" → \"<b>{new_status.value}</b>\".\n\n"
+            f"{info}"
             f"<a href='{app_config.domain}/tasks/{task.id}'>Задача</a> в "
             f"<a href='{app_config.domain}/tasks_archive'>архиве</a>."
             f"\n\n<i>Сообщение автоматически удалится через {TIME_TO_DELETE} секунд</i>."
@@ -53,9 +55,9 @@ async def run_status_change(task: Task, user: User, new_status: Statuses, db: As
         return
 
     if not user_to_notify:
+        await add_error(task.id, f"Не получилось определить ответственного за статус {new_status.value}", user.id)
         message = await callback_query.message.answer(
-            f"Статус задачи /{task.id} успешно изменён "
-            f"с \"<b>{previous_status}</b>\" на \"<b>{new_status.value}</b>\".\n\n"
+            f"{info}"
             f"⚠️ Cтатус не считается конечным, но ответственного за статус не получилось определить.\n"
             f"Пожалуйста перейдите в <a href='{app_config.domain}/tasks/{task.id}'>карточку задачи на сайте</a> "
             f"и проверьте назначенных пользователей."
@@ -71,7 +73,7 @@ async def run_status_change(task: Task, user: User, new_status: Statuses, db: As
         await delete_notifications(notifications, bot, db)
 
         message = await callback_query.message.answer(
-            f"Статус задачи /{task.id} успешно изменён с \"<b>{previous_status}</b>\" на \"<b>{new_status.value}</b>\".\n"
+            f"{info}"
             f"Текущий ответственный: <a href='{user.telegram_bot_link}'>{user_to_notify.full_name}</a>.\n"
             f"Система отправит уведомление и проконтролирует исполнение."
             f"\n\n<i>Сообщение автоматически удалится через {TIME_TO_DELETE} секунд</i>."
@@ -107,6 +109,9 @@ async def handle_status_change(callback_query: CallbackQuery,
                 inside = (f"⚠️ Cтатус не считается конечным, но ответственного за статус не получилось определить.\n"
                           f"Пожалуйста перейдите в <a href='{app_config.domain}/tasks/{task.id}'>карточку задачи на сайте</a> "
                           f"и проверьте назначенных пользователей.")
+                await add_error(task.id,
+                                f"Не получилось определить ответственного за статус {new_status.value}",
+                                user.id)
             message = await callback_query.message.answer(
                 f"Статус задачи /{task.id} уже установлен в \"<b>{new_status.value}</b>\".\n"
                 f"{inside}"

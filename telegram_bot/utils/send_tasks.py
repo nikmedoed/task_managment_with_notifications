@@ -103,7 +103,8 @@ async def delete_notifications(notifications, bot: Bot, db: AsyncSession):
                 await db.commit()
             else:
                 logging.error(f"Failed to delete message {notification.telegram_message_id}: {err}")
-                await add_error(notification.task_id, notification.user_id, f"Ошибка удаления устаревшего уведомления:\n{err}", db)
+                await add_error(notification.task_id, f"Ошибка удаления устаревшего уведомления:\n{err}",
+                                notification.user_id, db)
 
 
 async def send_task_message(text: str, task: Task, user: User,
@@ -171,6 +172,6 @@ async def send_task_message(text: str, task: Task, user: User,
             await add_notification(task, user.id, new_message.message_id, db)
         except TelegramAPIError as e:
             logging.error(f"Failed to send message to {user.telegram_id} for task {task.id}: {e}")
-            await add_error(task.id, user.id, f"Ошибка отправки уведомления:\n{e}", db)
+            await add_error(task.id, f"Ошибка отправки уведомления:\n{e}", user.id, db)
 
     return new_message

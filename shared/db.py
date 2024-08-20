@@ -66,7 +66,7 @@ async def get_user_tasks(user_id: int, db: AsyncSession = Depends(get_db)) -> Di
     }
 
 
-async def add_error(tid: int, uid: int, err: str, db: AsyncSession = Depends(get_db)) -> Comment:
+async def add_error(tid: int, err: str, uid: int = None, db: AsyncSession = Depends(get_db)) -> Comment:
     erc = Comment(type=CommentType.error, task_id=tid, user_id=uid, content=err)
     db.add(erc)
     await db.commit()

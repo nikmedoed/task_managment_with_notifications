@@ -58,5 +58,5 @@ async def handle_reply(message: Message, user: User, db: AsyncSession):
                                     markup=generate_status_keyboard(user, task))
         except TelegramAPIError as e:
             logging.error(f"Failed to send message to {user.telegram_id} for task {task.id}: {e}")
-            await add_error(task.id, user.id, f"Ошибка отправки уведомления:\n{e}", db)
+            await add_error(task.id, f"Ошибка отправки уведомления:\n{e}", user.id, db)
     await message.delete()
