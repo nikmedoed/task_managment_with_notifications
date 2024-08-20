@@ -17,6 +17,7 @@ class AcknowledgeCallback(CallbackData, prefix="ack"):
 class PlanDateChangeCallback(CallbackData, prefix="plan_date_change"):
     task_id: int
 
+
 cancel_callback_data = "cancel_commenting"
 cancel_button = InlineKeyboardButton(text="Отмена", callback_data=cancel_callback_data)
 cancel_keyboard = InlineKeyboardMarkup(inline_keyboard=[[cancel_button]])

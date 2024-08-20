@@ -10,20 +10,15 @@ from database.models import is_valid_transition, SHOULD_BE_COMMENTED, COMPLETED_
 from shared.app_config import app_config
 from shared.db import *
 from telegram_bot.utils.keyboards import *
+from telegram_bot.utils.message_magic import edit_or_resend_message, send_autodelete_message
 from telegram_bot.utils.notifications import send_notify
 from telegram_bot.utils.send_tasks import delete_notifications
 
 router = Router()
-TIME_TO_DELETE = 60
 
 
 class CommentStates(StatesGroup):
     waiting_for_comment = State()
-
-
-async def delete_message_after_delay(bot: Bot, chat_id: int, message_id: int):
-    await asyncio.sleep(TIME_TO_DELETE)
-    await bot.delete_message(chat_id=chat_id, message_id=message_id)
 
 
 async def run_status_change(task: Task, user: User, new_status: Statuses, db: AsyncSession,
@@ -40,13 +35,13 @@ async def run_status_change(task: Task, user: User, new_status: Statuses, db: As
     info = (f"Статус задачи /{task.id} успешно изменён\n"
             f"\"<b>{previous_status}</b>\" → \"<b>{new_status.value}</b>\".\n\n")
     if new_status in COMPLETED_STATUSES:
-        message = await callback_query.message.answer(
+        await send_autodelete_message(
             f"{info}"
             f"<a href='{app_config.domain}/tasks/{task.id}'>Задача</a> в "
-            f"<a href='{app_config.domain}/tasks_archive'>архиве</a>."
-            f"\n\n<i>Сообщение автоматически удалится через {TIME_TO_DELETE} секунд</i>."
-        )
-        asyncio.ensure_future(delete_message_after_delay(bot, user.telegram_id, message.message_id))
+            f"<a href='{app_config.domain}/tasks_archive'>архиве</a>.",
+            chat_id =user.telegram_id,
+            message=callback_query.message)
+
         notifications = await get_notifications(task.id, user.id, db)
         await delete_notifications(notifications, bot, db)
         return
@@ -69,13 +64,12 @@ async def run_status_change(task: Task, user: User, new_status: Statuses, db: As
         notifications = await get_notifications(task.id, user.id, db)
         await delete_notifications(notifications, bot, db)
 
-        message = await callback_query.message.answer(
+        await send_autodelete_message(
             f"{info}"
             f"Текущий ответственный: <a href='{user.telegram_bot_link}'>{user_to_notify.full_name}</a>.\n"
-            f"Система отправит уведомление и проконтролирует исполнение."
-            f"\n\n<i>Сообщение автоматически удалится через {TIME_TO_DELETE} секунд</i>."
-        )
-        asyncio.ensure_future(delete_message_after_delay(bot, user.telegram_id, message.message_id))
+            f"Система отправит уведомление и проконтролирует исполнение.",
+            chat_id=user.telegram_id,
+            message=callback_query.message)
 
     notify = await send_notify(task, db, bot,
                                event_msg=f"Новая задача в статусе: {new_status.value}\n"
@@ -109,13 +103,11 @@ async def handle_status_change(callback_query: CallbackQuery,
                 await add_error(task.id,
                                 f"Не получилось определить ответственного за статус {new_status.value}",
                                 user.id)
-            message = await callback_query.message.answer(
+            await send_autodelete_message(
                 f"Статус задачи /{task.id} уже установлен в \"<b>{new_status.value}</b>\".\n"
-                f"{inside}"
-                f"\n\n<i>Сообщение автоматически удалится через {TIME_TO_DELETE} секунд</i>."
-            )
-            if new_status in COMPLETED_STATUSES:
-                asyncio.ensure_future(delete_message_after_delay(bot, user.telegram_id, message.message_id))
+                f"{inside}",
+                chat_id=user.telegram_id,
+                message=callback_query.message)
         return
 
     if not is_valid_transition(task.status, new_status, user_roles):
@@ -142,12 +134,12 @@ async def receive_comment(message: Message, state: FSMContext):
     user_data = await state.get_data()
 
     new_status = Statuses[user_data['status']]
-    message_id = user_data.get('message_id')
     await state.update_data(comment=message.text)
 
-    await message.bot.edit_message_text(
+    new_message_id = await edit_or_resend_message(
+        message.bot,
         chat_id=message.chat.id,
-        message_id=message_id,
+        message_id=user_data.get('message_id'),
         text=f"Причина статуса \"<b>{new_status.value}</b>\":\n"
              f"<pre>{message.text}</pre>\n\n"
              f"Отправить или отменить?\n\n"
@@ -157,7 +149,9 @@ async def receive_comment(message: Message, state: FSMContext):
                 [InlineKeyboardButton(text="Отправить", callback_data="submit_comment")],
                 [cancel_button]
             ]
-        ))
+        )
+    )
+    await state.update_data(message_id=new_message_id)
 
 
 @router.callback_query(F.data == "submit_comment", CommentStates.waiting_for_comment)
