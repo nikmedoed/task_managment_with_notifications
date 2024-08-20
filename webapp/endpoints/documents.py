@@ -9,9 +9,9 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
 
+from database import get_db
 from database.models import Document, Comment
 from webapp.deps import templates
-from database import get_db
 from webapp.schemas import BulkDeleteRequest
 
 router = APIRouter()
@@ -28,6 +28,7 @@ def get_directory_size(directory: str) -> int:
             if os.path.exists(fp):
                 total_size += os.path.getsize(fp)
     return total_size
+
 
 def get_disk_space_info(directory: str = "documents"):
     base_directory = os.path.abspath(directory)

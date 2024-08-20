@@ -10,7 +10,9 @@ from sqlalchemy.orm import relationship, aliased
 
 from ._base import BaseModel
 from ._user_roles import UserRole
-from .statuses import (Statuses, COMPLETED_STATUSES, SUPERVISOR_STATUSES, EXECUTOR_STATUSES, SUPPLIER_STATUSES,
+from .statuses import (Statuses,
+                       ROLE_STATUS_TRANSITIONS, COMPLETED_STATUSES,
+                       SUPERVISOR_STATUSES, EXECUTOR_STATUSES, SUPPLIER_STATUSES,
                        is_valid_transition)
 
 if TYPE_CHECKING:
@@ -136,6 +138,27 @@ class Task(BaseModel):
         if not roles:
             roles.add(UserRole.GUEST)
         return roles
+
+    def get_user_roles_text(self, user_id: int):
+        roles = self.get_user_roles(user_id)
+        return ", ".join([i.value for i in roles])
+
+    def get_available_statuses_for_user(self, user_id: int, user_roles=None):
+        if not user_roles:
+            user_roles = self.get_user_roles(user_id)
+        return {status for role in user_roles for status in
+                ROLE_STATUS_TRANSITIONS.get(role, {}).get(self.status, set())}
+
+    def whom_notify(self):
+        if self.status in SUPPLIER_STATUSES:
+            user_to_notify = self.supplier
+        elif self.status in SUPERVISOR_STATUSES:
+            user_to_notify = self.supervisor
+        elif self.status in EXECUTOR_STATUSES:
+            user_to_notify = self.executor
+        else:
+            user_to_notify = None
+        return user_to_notify
 
     @property
     def formatted_plan_date(self) -> str:

@@ -15,7 +15,7 @@ from database import get_db
 from database.models import Task, Comment, CommentType, Document
 from database.models import User
 from database.models.statuses import *
-from shared.db import get_task_by_id, get_task_edit_common_data, get_user_tasks, add_comment
+from shared.db import get_task_by_id, get_task_edit_common_data, get_user_tasks, add_comment, status_change
 from webapp.deps import templates
 from webapp.schemas import TaskCreate
 
@@ -102,9 +102,7 @@ async def view_task(request: Request, task_id: int, db: AsyncSession = Depends(g
     # common_data = await get_task_edit_common_data(db)
     users = (await db.execute(select(User).filter(User.active == True).order_by(User.last_name))).scalars().all()
     user_roles = task.get_user_roles(request.state.user.id)
-
-    available_statuses = {status for role in user_roles for status in
-                          ROLE_STATUS_TRANSITIONS.get(role, {}).get(task.status, set())}
+    available_statuses = task.get_available_statuses_for_user(request.state.user.id, user_roles)
     available_statuses_dict = {status.name: status.value for status in available_statuses}
 
     return templates.TemplateResponse("task_view.html", {
@@ -142,7 +140,6 @@ async def update_plan_date(
     old_plan_date = task.actual_plan_date
     task.actual_plan_date = new_plan_date
     task.reschedule_count += 1
-    db.add(task)
     new_comment = Comment(
         type=CommentType.date_change,
         task_id=task.id,
@@ -207,17 +204,8 @@ async def update_role(
             task.executor_id = new_user_id
             user_changed = True
             if task.status not in {Statuses.DRAFT, Statuses.PLANNING} and task.status not in COMPLETED_STATUSES:
-                previous_status = task.status
-                task.status = Statuses.PLANNING
-                status_change_comment = Comment(
-                    type=CommentType.status_change,
-                    task_id=task.id,
-                    user_id=request.state.user.id,
-                    author_roles=list(task.get_user_roles(request.state.user.id)),
-                    previous_status=previous_status.name,
-                    new_status=Statuses.PLANNING.name
-                )
-                db.add(status_change_comment)
+                await status_change(task, request.state.user, Statuses.PLANNING,
+                                    "Сброс статуса из-за смены исполнителя", db=db)
     elif role == "supervisor":
         old_user = task.supervisor
         if old_user.id != new_user_id:
@@ -271,29 +259,14 @@ async def update_task_status(
     if status_enum == Statuses.REWORK:
         task.rework_count += 1
 
-    previous_status = task.status
-
-    if status_enum in {Statuses.REWORK, Statuses.REJECTED} and not status_comment:
+    if status_enum in SHOULD_BE_COMMENTED and not status_comment:
         raise HTTPException(status_code=400, detail="Комментарий обязателен для этого статуса")
 
     user_roles = task.get_user_roles(user.id)
     if not is_valid_transition(task.status, status_enum, user_roles):
         raise HTTPException(status_code=400, detail="Недопустимый переход статуса")
-    task.status = status_enum
 
-    new_comment = Comment(
-        type=CommentType.status_change,
-        task_id=task.id,
-        user_id=user.id,
-        author_roles=list(user_roles),
-        content=status_comment or "",
-        previous_status=previous_status.name,
-        new_status=status_enum.name
-    )
-    db.add(new_comment)
-
-    db.add(task)
-    await db.commit()
+    await status_change(task, user, status_enum, status_comment, user_roles, db)
 
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 

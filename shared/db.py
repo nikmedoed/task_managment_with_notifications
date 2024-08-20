@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
 from database import get_db
-from database.models import Task, Comment, TaskType, Object, User, CommentType, TaskNotification
+from database.models import Task, Comment, TaskType, Object, User, CommentType, TaskNotification, Statuses
 
 
 async def get_user_by_tg(telegram_id: int, db: AsyncSession = Depends(get_db)):
@@ -83,6 +83,30 @@ async def add_comment(task: Task, user: User, comment: str, db: AsyncSession = D
     )
     db.add(new_comment)
     await db.commit()
+    return new_comment
+
+
+async def status_change(task: Task, user: User,
+                        new_status: Statuses,
+                        comment: str=None,
+                        user_roles=None,
+                        db: AsyncSession = Depends(get_db)) -> Comment:
+    if not user_roles:
+        user_roles = task.get_user_roles(user.id)
+    previous_status = task.status
+    task.status = new_status
+    new_comment = Comment(
+        type=CommentType.status_change,
+        task_id=task.id,
+        user_id=user.id,
+        author_roles=list(user_roles),
+        content=comment or "",
+        previous_status=previous_status.name,
+        new_status=new_status.name
+    )
+    db.add(new_comment)
+    await db.commit()
+    await db.refresh(task)
     return new_comment
 
 

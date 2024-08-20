@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import UserRole, User
 from shared.app_config import app_config
 from shared.db import get_user_tasks, get_task_by_id
+from telegram_bot.utils.notifications import generate_status_keyboard
 from telegram_bot.utils.send_tasks import send_task_message, get_telegram_task_text
 from telegram_bot.utils.split_by_limit import split_message_by_limit
 
@@ -41,7 +42,8 @@ async def list_tasks(message: Message, user: User, db: AsyncSession):
                              f"<a href='{app_config.domain}/tasks/{task.id}'>{task.task_type.name}</a>\n"
                              f"{description}")
                 result.append(task_info)
-
+    if len(result)<2:
+        result.append("\n\n<i>Нет задач</i>")
     messages = split_message_by_limit(result)
     for mes in messages:
         await message.answer(mes)
@@ -54,6 +56,6 @@ async def handle_task_by_id(message: Message, db: AsyncSession, user: User):
     if not task:
         return await message.reply("Задача не найдена.")
     task_info = get_telegram_task_text(task)
-
-    await send_task_message(task_info, task, user, user_message=message, db=db, may_edit=False)
+    markup = generate_status_keyboard(user, task)
+    await send_task_message(task_info, task, user, user_message=message, markup=markup, db=db, may_edit=False)
     await message.delete()

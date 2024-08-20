@@ -35,6 +35,8 @@ def get_telegram_task_text(task: Task, event: str = "") -> str:
         has_comment = False
 
         for comment in reversed(task.comments):
+            if comment.type == CommentType.error:
+                continue
             has_comment = has_comment or comment.type == CommentType.comment
             comments.append(format_comment(comment))
             if len(comments) >= 5 and has_comment:
@@ -88,6 +90,21 @@ def format_comment(comment):
 
     return comment_info
 
+async def delete_notifications(notifications, bot: Bot, db: AsyncSession):
+    for notification in notifications:
+        try:
+            await bot.delete_message(notification.user.telegram_id, notification.telegram_message_id)
+            notification.active = False
+            await db.commit()
+        except TelegramAPIError as e:
+            err = str(e)
+            if 'message to delete not found' in err:
+                notification.active = False
+                await db.commit()
+            else:
+                logging.error(f"Failed to delete message {notification.telegram_message_id}: {err}")
+                await add_error(notification.task_id, notification.user_id, f"Ошибка удаления устаревшего уведомления:\n{err}", db)
+
 
 async def send_task_message(text: str, task: Task, user: User,
                             user_message: Message = None,
@@ -135,19 +152,7 @@ async def send_task_message(text: str, task: Task, user: User,
             logging.error(f"Failed to edit message {latest_notification.telegram_message_id}: {e}")
 
     # Удаление всех оставшихся уведомлений (если редактирование не удалось или его не было)
-    for notification in notifications:
-        try:
-            await bot.delete_message(notification.user.telegram_id, notification.telegram_message_id)
-            notification.active = False
-            await db.commit()
-        except TelegramAPIError as e:
-            err = str(e)
-            if 'message to delete not found' in err:
-                notification.active = False
-                await db.commit()
-            else:
-                logging.error(f"Failed to delete message {notification.telegram_message_id}: {err}")
-                await add_error(task.id, notification.user_id, f"Ошибка удаления устаревшего уведомления:\n{err}", db)
+    await delete_notifications(notifications, bot, db)
 
     # Если редактирование не удалось или уведомлений не было, отправляем новое сообщение
     if not new_message:

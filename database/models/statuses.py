@@ -18,7 +18,7 @@ class Statuses(Enum):
     DRAFT = 'Черновик'
     PLANNING = 'Планирование'
     ACCEPTED = 'Принято'
-    REJECTED = 'Отклонено'
+    REJECTED = 'Отказ'
     REVIEW = 'Проверка'
     CANCELED = 'Отмена'
     REWORK = 'Доработка'
@@ -29,9 +29,11 @@ COMPLETED_STATUSES = {Statuses.DONE, Statuses.CANCELED}
 NOTIFICATION_STATUSES = set(Statuses) - COMPLETED_STATUSES - {Statuses.DRAFT}
 
 SUPPLIER_STATUSES = {Statuses.DRAFT, Statuses.PLANNING, Statuses.ACCEPTED,
-                     Statuses.REJECTED, Statuses.REVIEW, Statuses.REWORK}
+                     Statuses.REJECTED}
 EXECUTOR_STATUSES = {Statuses.PLANNING, Statuses.ACCEPTED, Statuses.REWORK}
 SUPERVISOR_STATUSES = {Statuses.REVIEW}
+
+SHOULD_BE_COMMENTED = {Statuses.REWORK, Statuses.REJECTED}
 
 ROLE_STATUS_TRANSITIONS = {
     UserRole.SUPPLIER: {

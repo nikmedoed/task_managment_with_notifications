@@ -11,7 +11,7 @@ from aiogram.types import BotCommand
 from shared.app_config import app_config
 from telegram_bot.bot import bot
 from telegram_bot.middlewares import UserAndDBSessionCheckMiddleware
-from telegram_bot.utils.notifications_regular import notify_user_tasks
+from telegram_bot.utils.notifications import notify_everyday_tasks_deadlines
 
 logging.basicConfig(level=logging.getLevelName(app_config.log_level.upper()))
 logger = logging.getLogger(__name__)
@@ -49,6 +49,6 @@ async def start_bot():
         logger.error(f"Update: {event.update} \n{event.exception}", exc_info=True)
         return True
 
-    cron_job = aiocron.crontab('0 9 * * *', func=notify_user_tasks, start=True)
+    cron_job = aiocron.crontab('0 9 * * *', func=notify_everyday_tasks_deadlines, start=True)
 
     await dp.start_polling(bot, skip_updates=False)

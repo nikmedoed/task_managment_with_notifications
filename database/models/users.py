@@ -68,7 +68,7 @@ class User(BaseModel):
         if self.telegram_nick:
             return f"https://t.me/{self.telegram_nick}"
         else:
-            return f"tg://user?id={self.id}"
+            return f"tg://user?id={self.telegram_id}"
 
     @hybrid_property
     def short_name(self):
