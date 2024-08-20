@@ -150,12 +150,15 @@ class Task(BaseModel):
                 ROLE_STATUS_TRANSITIONS.get(role, {}).get(self.status, set())}
 
     def whom_notify(self):
-        if self.status in SUPPLIER_STATUSES:
-            user_to_notify = self.supplier
-        elif self.status in SUPERVISOR_STATUSES:
+        # важен порядок, т.к. это статусы для наблюдения (отображения в таблице) а не уведомлений.
+        # SUPPLIER_STATUSES включает почти все неактивные, т.к. ему важно наблюдать.
+        # Возможно, стоит перевести этот метод в список и рассылать задачу сразу нескольким заинтересованным
+        if self.status in SUPERVISOR_STATUSES:
             user_to_notify = self.supervisor
         elif self.status in EXECUTOR_STATUSES:
             user_to_notify = self.executor
+        elif self.status in SUPPLIER_STATUSES:
+            user_to_notify = self.supplier
         else:
             user_to_notify = None
         return user_to_notify

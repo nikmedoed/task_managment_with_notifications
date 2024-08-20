@@ -49,7 +49,7 @@ async def run_status_change(task: Task, user: User, new_status: Statuses, db: As
             f"<a href='{app_config.domain}/tasks_archive'>архиве</a>."
             f"\n\n<i>Сообщение автоматически удалится через {TIME_TO_DELETE} секунд</i>."
         )
-        asyncio.create_task(delete_message_after_delay(bot, user.telegram_id, message.message_id))  # noqa
+        asyncio.ensure_future(delete_message_after_delay(bot, user.telegram_id, message.message_id))
         notifications = await get_notifications(task.id, user.id, db)
         await delete_notifications(notifications, bot, db)
         return
@@ -78,7 +78,7 @@ async def run_status_change(task: Task, user: User, new_status: Statuses, db: As
             f"Система отправит уведомление и проконтролирует исполнение."
             f"\n\n<i>Сообщение автоматически удалится через {TIME_TO_DELETE} секунд</i>."
         )
-        asyncio.create_task(delete_message_after_delay(bot, user.telegram_id, message.message_id))  # noqa
+        asyncio.ensure_future(delete_message_after_delay(bot, user.telegram_id, message.message_id))
 
     notify = await send_notify(task, db, bot,
                                event_msg=f"Новая задача в статусе: {new_status.value}\n"
@@ -118,7 +118,7 @@ async def handle_status_change(callback_query: CallbackQuery,
                 f"\n\n<i>Сообщение автоматически удалится через {TIME_TO_DELETE} секунд</i>."
             )
             if new_status in COMPLETED_STATUSES:
-                asyncio.create_task(delete_message_after_delay(bot, user.telegram_id, message.message_id))  # noqa
+                asyncio.ensure_future(delete_message_after_delay(bot, user.telegram_id, message.message_id))
         return
 
     if not is_valid_transition(task.status, new_status, user_roles):

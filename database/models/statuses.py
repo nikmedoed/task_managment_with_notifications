@@ -29,7 +29,7 @@ COMPLETED_STATUSES = {Statuses.DONE, Statuses.CANCELED}
 NOTIFICATION_STATUSES = set(Statuses) - COMPLETED_STATUSES - {Statuses.DRAFT}
 
 SUPPLIER_STATUSES = {Statuses.DRAFT, Statuses.PLANNING, Statuses.ACCEPTED,
-                     Statuses.REJECTED}
+                     Statuses.REJECTED, Statuses.REVIEW, Statuses.REWORK}
 EXECUTOR_STATUSES = {Statuses.PLANNING, Statuses.ACCEPTED, Statuses.REWORK}
 SUPERVISOR_STATUSES = {Statuses.REVIEW}
 
