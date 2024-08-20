@@ -1,21 +1,16 @@
 import os
 import shutil
 import uuid
-from datetime import date
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Form, UploadFile
+from fastapi import APIRouter, HTTPException, Request, Form, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import ValidationError
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
-from database import get_db
-from database.models import Task, Comment, CommentType, Document
-from database.models import User
+from database.models import Document
 from database.models.statuses import *
-from shared.db import get_task_by_id, get_task_edit_common_data, get_user_tasks, add_comment, status_change
+from shared.db import *
 from webapp.deps import templates
 from webapp.schemas import TaskCreate
 
@@ -101,21 +96,18 @@ async def view_task(request: Request, task_id: int, db: AsyncSession = Depends(g
 
     # common_data = await get_task_edit_common_data(db)
     users = (await db.execute(select(User).filter(User.active == True).order_by(User.last_name))).scalars().all()
-    user_roles = task.get_user_roles(request.state.user.id)
-    available_statuses = task.get_available_statuses_for_user(request.state.user.id, user_roles)
-    available_statuses_dict = {status.name: status.value for status in available_statuses}
+    permission = task.user_permission(request.state.user.id)
+    available_statuses_dict = {status.name: status.value for status in permission.available_statuses}
 
     return templates.TemplateResponse("task_view.html", {
         "request": request,
         "task": task,
         # **common_data,
         'users': users,
-        "is_supplier": UserRole.SUPPLIER in user_roles,
-        "is_executor": UserRole.EXECUTOR in user_roles,
-        "is_supervisor": UserRole.SUPERVISOR in user_roles,
         "Statuses": Statuses,
+        "permission": permission,
         "available_statuses": available_statuses_dict,
-        "can_change_status": len(available_statuses) > 0,
+        "can_change_status": len(permission.available_statuses) > 0,
         "title": f"Задача {task.id}: {task.task_type.name}",
         "CommentType": CommentType
     })
@@ -128,29 +120,21 @@ async def update_plan_date(
         executor_comment: Optional[str] = Form(None),
         db: AsyncSession = Depends(get_db)
 ):
-    task = await db.get(Task, task_id)
+    task: Optional[Task] = await db.get(Task, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Задача не найдена")
 
-    roles = task.get_user_roles(request.state.user.id)
-    if UserRole.EXECUTOR in roles:
-        if not executor_comment:
-            raise HTTPException(status_code=400, detail="Комментарий обязателен для изменения даты исполнителем")
+    permission = task.user_permission(request.state.user.id)
 
-    old_plan_date = task.actual_plan_date
-    task.actual_plan_date = new_plan_date
-    task.reschedule_count += 1
-    new_comment = Comment(
-        type=CommentType.date_change,
-        task_id=task.id,
-        user_id=request.state.user.id,
-        author_roles=list(roles),
-        old_date=old_plan_date,
-        new_date=task.actual_plan_date,
-        content=executor_comment or ""
-    )
-    db.add(new_comment)
-    await db.commit()
+    if not permission.can_change_date:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Ваша роль по задаче не позволяет менять дату в текущем статусе ({task.status.value})")
+
+    if permission.must_comment_date and not executor_comment:
+        raise HTTPException(status_code=422, detail="Комментарий обязателен для изменения даты исполнителем")
+
+    await date_change(task, request.state.user, new_plan_date, executor_comment, db=db)
 
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 

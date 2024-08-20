@@ -23,6 +23,19 @@ if TYPE_CHECKING:
     from .documents import Document
     from .task_notifications import TaskNotification
 
+from dataclasses import dataclass
+
+
+@dataclass
+class UserChangePermissions:
+    user_roles: set[UserRole]
+    available_statuses: set[Statuses]
+    can_change_date: bool
+    must_comment_date: bool
+    is_supplier: bool
+    # is_executor: bool
+    # is_supervisor: bool
+
 
 class Task(BaseModel):
     __tablename__ = 'tasks'
@@ -162,6 +175,25 @@ class Task(BaseModel):
         else:
             user_to_notify = None
         return user_to_notify
+
+    _permission_cache: dict = {}
+
+    def user_permission(self, user_id: int) -> UserChangePermissions:
+        if cache := self._permission_cache.get(
+                (user_id, self.status, self.supplier_id, self.supervisor_id, self.executor_id)):
+            return cache
+        user_roles = self.get_user_roles(user_id)
+        sup = UserRole.SUPPLIER in user_roles
+        available_statuses = self.get_available_statuses_for_user(user_id, user_roles)
+        return UserChangePermissions(
+            user_roles,
+            can_change_date=sup or available_statuses,
+            must_comment_date=not sup,
+            available_statuses=available_statuses,
+            is_supplier=sup,
+            # is_executor=UserRole.EXECUTOR in user_roles,
+            # is_supervisor=UserRole.SUPERVISOR in user_roles,
+        )
 
     @property
     def formatted_plan_date(self) -> str:

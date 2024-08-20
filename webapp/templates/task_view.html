@@ -18,8 +18,8 @@
                 <h5 class="card-title">{{ task.description }}</h5>
                 {% if task.important %}
                 <p>
-                        <span class="badge bg-warning text-dark"><i
-                                class="bi bi-exclamation-triangle me-1"></i> Важная</span>
+                    <span class="badge bg-warning text-dark"><i
+                            class="bi bi-exclamation-triangle me-1"></i> Важная</span>
                 </p>
                 {% endif %}
                 <p>
@@ -28,15 +28,19 @@
                 <p>
                     <strong>Статус:</strong> {{ task.status.value }}
                     {% if can_change_status %}
-                    <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#statusModal"><i
-                            class="bi bi-box-arrow-in-up-right"></i></a>
+                    <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#statusModal">
+                        <i class="bi bi-box-arrow-in-up-right"></i>
+                    </a>
                     {% endif %}
                 </p>
                 <p>
                     <strong>Срок до (включительно):</strong>
                     {{ task.formatted_plan_date }}
-                    <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#updateDateModal"><i
-                            class="bi bi-pencil-square"></i></a>
+                    {% if permission.can_change_date %}
+                    <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#updateDateModal">
+                        <i class="bi bi-pencil-square"></i>
+                    </a>
+                    {% endif %}
                 </p>
                 <p>
                     <strong>Руководитель:</strong>
@@ -46,7 +50,7 @@
                     {{ task.supervisor.full_name }}
                     {% endif %}
                     – {{ task.supervisor.position }}
-                    {% if is_supplier %}
+                    {% if permission.is_supplier %}
                     <a href="#" class="text-decoration-none" data-bs-toggle="modal"
                        data-bs-target="#updateSupervisorModal">
                         <i class="ri-user-shared-line"></i>
@@ -61,7 +65,7 @@
                     {{ task.executor.full_name }}
                     {% endif %}
                     – {{ task.executor.position }}
-                    {% if is_supplier %}
+                    {% if permission.is_supplier %}
                     <a href="#" class="text-decoration-none" data-bs-toggle="modal"
                        data-bs-target="#updateExecutorModal">
                         <i class="ri-user-shared-line"></i>
@@ -69,6 +73,7 @@
                     {% endif %}
                 </p>
 
+                <!-- Таблица переноса, доработок и уведомлений -->
                 <table class="table table-hover">
                     <thead>
                     <tr>
@@ -86,16 +91,17 @@
                     </tbody>
                 </table>
 
-                {% if is_supplier or available_statuses %}
+                {% if permission.is_supplier or permission.available_statuses %}
                 <div class="d-flex flex-column flex-sm-row flex-md-row flex-lg-column flex-xxl-row align-items-stretch justify-content-end mt-3 gap-2">
-                    {% if available_statuses %}
+                    {% if permission.available_statuses %}
                     <button type="button" class="btn btn-primary d-flex justify-content-center align-items-center"
                             data-bs-toggle="modal" data-bs-target="#statusModal">
                         <i class="bi bi-box-arrow-in-up-right me-2"></i> Сменить статус
                     </button>
                     {% endif %}
 
-                    {% if is_supplier and task.status != Statuses.DONE %}
+
+                    {% if permission.is_supplier and task.status != Statuses.DONE %}
                     {% if task.status == Statuses.CANCELED %}
                     <button type="submit" form="restoreForm" class="btn btn-warning">
                         Восстановить
@@ -176,7 +182,7 @@
                         <input type="date" class="form-control" id="new_plan_date_modal" name="new_plan_date"
                                value="{{ task.actual_plan_date.strftime('%Y-%m-%d') }}" required/>
                     </div>
-                    {% if is_executor %}
+                    {% if permission.must_comment_date %}
                     <div class="mb-3">
                         <label for="executor_comment" class="form-label">Комментарий</label>
                         <textarea class="form-control" id="executor_comment" name="executor_comment" rows="3"
@@ -194,7 +200,7 @@
     </div>
 </div>
 
-{% if is_supplier %}
+{% if permission.is_supplier %}
 <!-- Модальное окно для изменения исполнителя -->
 <div class="modal fade" id="updateExecutorModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">

@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Dict, Sequence
 from typing import Optional
 
@@ -16,7 +17,7 @@ async def get_user_by_tg(telegram_id: int, db: AsyncSession = Depends(get_db)):
     return result.scalars().first()
 
 
-async def get_task_by_id(task_id: int, db: AsyncSession = Depends(get_db)):
+async def get_task_by_id(task_id: int, db: AsyncSession = Depends(get_db)) -> Task|None:
     query = (
         select(Task)
         .options(
@@ -80,6 +81,30 @@ async def add_comment(task: Task, user: User, comment: str = None, db: AsyncSess
         user_id=user.id,
         author_roles=list(task.get_user_roles(user.id)),
         content=comment
+    )
+    db.add(new_comment)
+    await db.commit()
+    return new_comment
+
+
+async def date_change(task: Task, user: User,
+                      new_plan_date: date,
+                      comment: str = None,
+                      user_roles=None,
+                      db: AsyncSession = Depends(get_db)) -> Comment:
+    if not user_roles:
+        user_roles = task.get_user_roles(user.id)
+    old_plan_date = task.actual_plan_date
+    task.actual_plan_date = new_plan_date
+    task.reschedule_count += 1
+    new_comment = Comment(
+        type=CommentType.date_change,
+        task_id=task.id,
+        user_id=user.id,
+        author_roles=list(user_roles),
+        old_date=old_plan_date,
+        new_date=task.actual_plan_date,
+        content=comment or ""
     )
     db.add(new_comment)
     await db.commit()
