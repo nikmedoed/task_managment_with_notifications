@@ -11,6 +11,8 @@
         <i class="bi bi-calendar"></i>
         {% elif comment.type == CommentType.user_change %}
         <i class="ri-user-shared-line"></i>
+        {% elif comment.type == CommentType.notified %}
+        <i class="bi bi-info-square"></i>
         {% endif %}
 
         <small class="utc-time" data-utc-time="{{ comment.time_updated.isoformat() }}">{{
@@ -26,20 +28,23 @@
         {% endif %}
 
         <small>
+            ::
             {% if comment.type == CommentType.status_change %}
-            :: Статус "{{ Statuses[comment.previous_status].value }}" <i class="bi bi-arrow-right"/></i> "{{
+            Статус "{{ Statuses[comment.previous_status].value }}" <i class="bi bi-arrow-right"/></i> "{{
             Statuses[comment.new_status].value }}"
             {% elif comment.type == CommentType.date_change %}
-            :: Срок до "{{ comment.old_date.strftime('%d.%m.%Y') }}" <i class="bi bi-arrow-right"/></i> "{{
+            Срок до "{{ comment.old_date.strftime('%d.%m.%Y') }}" <i class="bi bi-arrow-right"/></i> "{{
             comment.new_date.strftime('%d.%m.%Y') }}"
             ({% set diff = (comment.new_date - comment.old_date).days %}{% if diff > 0 %}+{% endif %}{{ diff }} дн.)
             {% elif comment.type == CommentType.user_change %}
-            :: {{ "Исполнитель" if comment.extra_data['role'] == 'executor' else "Руководитель" }}
+            {{ "Исполнитель" if comment.extra_data['role'] == 'executor' else "Руководитель" }}
             "<span data-bs-toggle="tooltip" data-bs-placement="top"
                    data-bs-original-title="{{ comment.extra_data['old_user']['position'] }}">{{ comment.extra_data['old_user']['name'] }}</span>"
             <i class="bi bi-arrow-right"/></i>
             "<span data-bs-toggle="tooltip" data-bs-placement="top"
                    data-bs-original-title="{{ comment.extra_data['new_user']['position'] }}">{{ comment.extra_data['new_user']['name'] }}</span>"
+            {% elif comment.type == CommentType.notified %}
+            Ознакомился в телеграм
             {% endif %}
         </small>
     </div>

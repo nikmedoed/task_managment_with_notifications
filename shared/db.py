@@ -73,9 +73,9 @@ async def add_error(tid: int, err: str, uid: int = None, db: AsyncSession = Depe
     return erc
 
 
-async def add_comment(task: Task, user: User, comment: str, db: AsyncSession = Depends(get_db)) -> Comment:
+async def add_comment(task: Task, user: User, comment: str = None, db: AsyncSession = Depends(get_db)) -> Comment:
     new_comment = Comment(
-        type=CommentType.comment,
+        type=CommentType.comment if comment else CommentType.notified,
         task_id=task.id,
         user_id=user.id,
         author_roles=list(task.get_user_roles(user.id)),
@@ -88,7 +88,7 @@ async def add_comment(task: Task, user: User, comment: str, db: AsyncSession = D
 
 async def status_change(task: Task, user: User,
                         new_status: Statuses,
-                        comment: str=None,
+                        comment: str = None,
                         user_roles=None,
                         db: AsyncSession = Depends(get_db)) -> Comment:
     if not user_roles:

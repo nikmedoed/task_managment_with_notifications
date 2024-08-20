@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from typing import Optional
 
 from aiogram import Router, Bot, F
 from aiogram.fsm.context import FSMContext
@@ -195,10 +196,10 @@ async def cancel_comment(callback_query: CallbackQuery, state: FSMContext):
 
 @router.callback_query(AcknowledgeCallback.filter())
 async def handle_acknowledge(call: CallbackQuery, callback_data: AcknowledgeCallback, user: User, db: AsyncSession):
-    task = await db.get(Task, callback_data.task_id)
+    task: Optional[Task] = await db.get(Task, callback_data.task_id)
     if not task:
         await call.answer("Задача более недоступна в базе")
         return
-    await add_comment(task, user, "Ознакомился с описанием и комментариями в телеграм", db)  # noqa
+    await add_comment(task, user, db=db)
     await call.message.delete()
     await call.answer("Записано")

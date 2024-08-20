@@ -35,7 +35,7 @@ def get_telegram_task_text(task: Task, event: str = "") -> str:
         has_comment = False
 
         for comment in reversed(task.comments):
-            if comment.type == CommentType.error:
+            if comment.type in {CommentType.error, CommentType.notified}:
                 continue
             has_comment = has_comment or comment.type == CommentType.comment
             comments.append(format_comment(comment))

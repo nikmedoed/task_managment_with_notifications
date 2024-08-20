@@ -14,11 +14,12 @@ if TYPE_CHECKING:
 
 
 class CommentType(enum.Enum):
-    error = "error"
-    comment = "comment"
-    status_change = "status_change"
-    date_change = "date_change"
-    user_change = "user_change"
+    error = "Ошибка"
+    comment = "Комментарий"
+    status_change = "Изменение статуса"
+    date_change = "Изменение даты"
+    user_change = "Смена пользователя"
+    notified = "Прочитал уведомление"
 
 
 class CommentUserRoleAssociation(BaseModel):
