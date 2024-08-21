@@ -1,6 +1,14 @@
 {% extends "blank.html" %}
 
 {% block content %}
+<style>
+    .user-avatar {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+}
+</style>
+
 <div class="row">
     <div class="col-lg-12">
         <!-- Verification Table -->
@@ -15,6 +23,7 @@
                     <table class="table table-hover">
                         <thead>
                         <tr>
+                            <th class="text-center pe-0"></th>
                             <th scope="col">#</th>
                             <th scope="col">ФИО</th>
                             <th scope="col">Электронная почта</th>
@@ -28,8 +37,12 @@
                         </thead>
                         <tbody>
                         {% for user in unverified_users %}
-                        <tr>
-                            <td scope="row">{{ loop.index }}</td>
+                        <tr class="align-middle">
+                            <td class="text-center pe-0">
+                                <img src="/users/{{ user.id }}/avatar" alt="Фото" class="rounded-circle user-avatar"
+                                     onload="this.style.display='inline';" onerror="this.style.display='none';">
+                            </td>
+                            <td scope="row">{{ user.id }}</td>
                             <td>{{ user.full_name }}</td>
                             <td>
                                 {% if user.email %}
@@ -87,6 +100,7 @@
                 <table class="table table-striped table-hover datatable">
                     <thead>
                     <tr>
+                        <th class="text-center pe-0"></th>
                         <th>ФИО</th>
                         <th>Электронная почта</th>
                         <th>Номер телефона</th>
@@ -102,6 +116,10 @@
                     <tbody>
                     {% for user in users %}
                     <tr>
+                        <td class="text-center pe-0">
+                            <img src="/users/{{ user.id }}/avatar" alt="Фото" class="rounded-circle user-avatar"
+                                 onload="this.style.display='inline';" onerror="this.style.display='none';">
+                        </td>
                         <td>{{ user.full_name }}</td>
                         <td>
                             {% if user.email %}
@@ -160,31 +178,45 @@
 
 {% block scripts %}
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const datatables = document.querySelectorAll(".datatable");
-      datatables.forEach((datatable) => {
-        new simpleDatatables.DataTable(datatable, {
-          perPage: 100,
-          perPageSelect: [10, 50, 100, ["All", -1]],
-          columns: [
-            {
-              select: 5,
-              searchable: false,
-              filter: ["Да", "Нет"],
-            },
-            {
-              select: 6,
-              searchable: false,
-              filter: ["Да", "Нет"],
-            },
-            {
-              select: 7,
-              sortable: false,
-              searchable: false,
-            },
-          ],
-        });
-      });
+document.addEventListener("DOMContentLoaded", function () {
+  const datatables = document.querySelectorAll(".datatable");
+
+  datatables.forEach((datatable) => {
+    const dataTableInstance = new simpleDatatables.DataTable(datatable, {
+      perPage: 100,
+      perPageSelect: [10, 50, 100, ["All", -1]],
+      columns: [
+        { select: 0, sortable: false },
+        {
+          select: 5,
+          searchable: false,
+          filter: ["Да", "Нет"],
+        },
+        {
+          select: 6,
+          searchable: false,
+          filter: ["Да", "Нет"],
+        },
+        {
+          select: 7,
+          sortable: false,
+          searchable: false,
+        },
+      ],
     });
+
+    function applyVerticalAlign() {
+      datatable.querySelectorAll("tbody td").forEach((cell) => {
+        cell.style.verticalAlign = "middle";
+      });
+    }
+    new MutationObserver(applyVerticalAlign).observe(datatable.querySelector("tbody"), {
+      childList: true,
+      subtree: true
+    });
+    dataTableInstance.on('datatable.init', applyVerticalAlign);
+  });
+});
+
 </script>
 {% endblock %}

@@ -158,3 +158,4 @@ _redisData
 webapp_theme_static/*
 /webapp/templates/static
 /documents
+/avatars

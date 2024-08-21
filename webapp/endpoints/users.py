@@ -1,16 +1,56 @@
+import io
+from datetime import datetime
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import ValidationError
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from database.models import User
-from webapp.deps import templates
 from database import get_db
+from database.models import User
+from telegram_bot.utils.get_user_photo import get_user_avatar
+from webapp.deps import templates
 from webapp.schemas import UserSchema
+from webapp.utils.save_avatar import AVATAR_DIR, save_avatar_to_disk
 
 router = APIRouter()
+
+CACHE_DURATION = timedelta(days=1)
+
+
+@router.get("/avatar")
+@router.get("/{user_id:int}/avatar")
+async def avatar_endpoint(request: Request, user_id: int = None,
+                          background_tasks: BackgroundTasks = BackgroundTasks(),
+                          db: AsyncSession = Depends(get_db)):
+    user = request.state.user
+    if user_id:
+        user = await db.get(User, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+    avatar_path = AVATAR_DIR / f"{user.id}.jpg"
+
+    if avatar_path.exists():
+        file_modified_time = datetime.fromtimestamp(avatar_path.stat().st_mtime)
+        headers = {
+            'Cache-Control': f'public, max-age={CACHE_DURATION.total_seconds()}',
+            'Last-Modified': file_modified_time.strftime('%a, %d %b %Y %H:%M:%S GMT')
+        }
+        background_tasks.add_task(save_avatar_to_disk, user)
+        return FileResponse(avatar_path, headers=headers)
+    else:
+        avatar_data = await get_user_avatar(user.telegram_id)
+        if avatar_data:
+            background_tasks.add_task(save_avatar_to_disk, user)
+            return StreamingResponse(io.BytesIO(avatar_data), media_type="image/jpeg")
+        else:
+            raise HTTPException(status_code=404, detail="Avatar not found")
 
 
 @router.get("", response_class=HTMLResponse)
@@ -52,7 +92,8 @@ async def save_user(request: Request, user_id: int = None, db: AsyncSession = De
 
     if user_id:
         if not current_user.admin and current_user.id != user_id:
-            raise HTTPException(status_code=403, detail="Неавторизованный доступ. Вы не можете редактировать данное поле.")
+            raise HTTPException(status_code=403,
+                                detail="Неавторизованный доступ. Вы не можете редактировать данное поле.")
         user = await db.get(User, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="Пользователь не найден.")

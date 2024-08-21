@@ -218,9 +218,12 @@
                 var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
                     return new bootstrap.Tooltip(tooltipTriggerEl);
                 });
-                const datatableBottom = datatable.closest('.dataTable-wrapper').querySelector('.datatable-bottom');
-                if (datatableBottom) {
-                    datatableBottom.parentNode.removeChild(datatableBottom);
+                const datatableWrapper = datatable.closest('.dataTable-wrapper');
+                if (datatableWrapper) {
+                    const datatableBottom = datatableWrapper.querySelector('.datatable-bottom');
+                    if (datatableBottom) {
+                        datatableBottom.parentNode.removeChild(datatableBottom);
+                    }
                 }
             });
         });
