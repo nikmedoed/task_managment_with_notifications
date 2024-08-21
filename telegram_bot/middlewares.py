@@ -16,13 +16,17 @@ class UserAndDBSessionCheckMiddleware(BaseMiddleware):
             data: Dict[str, Any],
     ) -> Any:
         telegram_id = None
-
+        username = None
         if isinstance(event, Update):
-            telegram_id = (
-                    event.message or
-                    event.callback_query or
-                    event.inline_query
-            ).from_user.id if any([event.message, event.callback_query, event.inline_query]) else None
+            if event.message:
+                telegram_id = event.message.from_user.id
+                username = event.message.from_user.username
+            elif event.callback_query:
+                telegram_id = event.callback_query.from_user.id
+                username = event.callback_query.from_user.username
+            elif event.inline_query:
+                telegram_id = event.inline_query.from_user.id
+                username = event.inline_query.from_user.username
 
         if not telegram_id:
             return await handler(event, data)
@@ -47,6 +51,10 @@ class UserAndDBSessionCheckMiddleware(BaseMiddleware):
                     "Ваш аккаунт на верификации. "
                     "Обратитесь к администратору для ускорения.")
                 return
+
+            if user.nickname != username:
+                user.nickname = username
+                await session.commit()
 
             data['db'] = session
             data["user"] = user
