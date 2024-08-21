@@ -53,9 +53,8 @@ async def handle_reply(message: Message, user: User, db: AsyncSession):
     for user in users:
         try:
             is_initiator = user.telegram_id == telegram_id
-            await send_task_message(task_info, task, user, bot=bot, may_edit=not is_initiator,
-                                    db=db, user_message=message if is_initiator else None,
-                                    markup=generate_status_keyboard(user, task))
+            await send_task_message(task_info, task, user, user_message=message if is_initiator else None, db=db,
+                                    markup=generate_status_keyboard(user, task), may_edit=not is_initiator)
         except TelegramAPIError as e:
             logging.error(f"Failed to send message to {user.telegram_id} for task {task.id}: {e}")
             await add_error(task.id, f"Ошибка отправки уведомления:\n{e}", user.id, db)

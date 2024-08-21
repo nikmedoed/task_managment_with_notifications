@@ -195,9 +195,7 @@ async def finalize_date_change(task: Task, user: User, new_plan_date: datetime.d
                                message: Message, db: AsyncSession, bot: Bot):
     old_plan_date = task.actual_plan_date
     await date_change(task, user, new_plan_date, comment, db=db)
-    await send_notify(task, db, bot,
-                      event_msg=f"Смена плановой даты задачи на\n{task.formatted_plan_date}",
-                      may_edit=True)
+    await send_notify(task, db, event_msg=f"Смена плановой даты задачи на\n{task.formatted_plan_date}", may_edit=True)
     user_data = await state.get_data()
     message_id = user_data.get('message_id')
     await state.clear()

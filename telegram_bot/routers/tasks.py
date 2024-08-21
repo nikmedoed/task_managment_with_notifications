@@ -57,5 +57,5 @@ async def handle_task_by_id(message: Message, db: AsyncSession, user: User):
         return await message.reply("Задача не найдена.")
     task_info = get_telegram_task_text(task)
     markup = generate_status_keyboard(user, task)
-    await send_task_message(task_info, task, user, user_message=message, markup=markup, db=db, may_edit=False)
+    await send_task_message(task_info, task, user, user_message=message, db=db, markup=markup, may_edit=False)
     await message.delete()

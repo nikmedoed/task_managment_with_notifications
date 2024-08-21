@@ -11,7 +11,7 @@ from aiogram.types import BotCommand
 from shared.app_config import app_config
 from telegram_bot.bot import bot
 from telegram_bot.middlewares import UserAndDBSessionCheckMiddleware
-from telegram_bot.utils.notifications import notify_everyday_tasks_deadlines
+from telegram_bot.utils.notifications import notify_everyday_tasks_deadlines, send_notify
 
 logging.basicConfig(level=logging.getLevelName(app_config.log_level.upper()))
 logger = logging.getLogger(__name__)

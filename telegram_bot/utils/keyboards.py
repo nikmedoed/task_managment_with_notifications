@@ -28,24 +28,24 @@ def generate_status_keyboard(user: User, task: Task):
     keyboard = InlineKeyboardBuilder()
 
     if user_permissions.can_change_date:
-        keyboard.add(
+        keyboard.row(
             InlineKeyboardButton(
                 text="🗓 Изменить плановую дату 🗓",
                 callback_data=PlanDateChangeCallback(task_id=task.id).pack()
             )
         )
-        keyboard.adjust(1)
+
     if user_permissions.available_statuses:
-        for status in user_permissions.available_statuses:
-            keyboard.add(
-                InlineKeyboardButton(
-                    text=f"{status.value}",
-                    callback_data=StatusChangeCallback(task_id=task.id, status=status.name).pack()
-                )
-            )
-        keyboard.adjust(2)
+        buttons = [
+            InlineKeyboardButton(
+                text=f"{status.value}",
+                callback_data=StatusChangeCallback(task_id=task.id, status=status.name).pack()
+            ) for status in user_permissions.available_statuses
+        ]
+        for i in range(0, len(buttons), 2):
+            keyboard.row(*buttons[i:i + 2])
     else:
-        keyboard.add(
+        keyboard.row(
             InlineKeyboardButton(
                 text="Ознакомлен, скрыть",
                 callback_data=AcknowledgeCallback(task_id=task.id).pack()
@@ -53,3 +53,4 @@ def generate_status_keyboard(user: User, task: Task):
         )
 
     return keyboard.as_markup()
+

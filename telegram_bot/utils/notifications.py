@@ -2,7 +2,6 @@ import asyncio
 import logging
 from datetime import date, timedelta
 
-from aiogram import Bot
 from sqlalchemy import cast, Date, and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
@@ -29,10 +28,7 @@ WHEN_REMEMBER = [0, 1, 3, 7]
 DAYS_WORD = {d: get_days_text(d) for d in [0, 1, 3, 7]}
 
 
-async def notify_everyday_tasks_deadlines(bot: Bot = None):
-    if not bot:
-        from telegram_bot.bot import bot
-
+async def notify_everyday_tasks_deadlines():
     now = date.today()
     date_ranges = [(now + timedelta(days=x)) for x in WHEN_REMEMBER]
 
@@ -54,34 +50,25 @@ async def notify_everyday_tasks_deadlines(bot: Bot = None):
             event_msg = (f"Напоминание о задаче со сроком через "
                          f"{days_remain} {DAYS_WORD.get(days_remain, 'дней')}")
 
-            await send_notify(task, db, bot, event_msg=event_msg, may_edit=False, mark=True)
+            await send_notify(task, db, event_msg=event_msg, may_edit=False, mark=True)
             await asyncio.sleep(0.1)
 
 
-async def send_notify(task: Task, db: AsyncSession, bot: Bot, event_msg: str = "", may_edit=False, mark=False):
+async def send_notify(task: Task, db: AsyncSession, event_msg: str = "", may_edit=False, mark=False):
     user_to_notify = task.whom_notify()
     if not user_to_notify:
         logging.warning(f"No relevant user to notify about {task} - {task.description}")
         notifications = await get_notifications(task.id, db=db)
-        await delete_notifications(notifications, bot, db)
+        await delete_notifications(notifications, db)
         return
-
-    await notify_sent(task, user_to_notify, db)
 
     text = get_telegram_task_text(task, event_msg)
     markup = generate_status_keyboard(user_to_notify, task)
 
-    return await send_task_message(text, task, user_to_notify, db=db, markup=markup, bot=bot, may_edit=may_edit)
-
-
-# async def notify_event(task: Task, db: AsyncSession = None, bot: Bot = None):
-#     if task.status not in NOTIFICATION_STATUSES:
-#         return
-#     if not bot:
-#         from telegram_bot.bot import bot
-#     if db is None:
-#         db = await anext(get_db())
-#     await send_notify(task, db, bot, event_msg="Новый статус???", may_edit=True)
+    msg = await send_task_message(text, task, user_to_notify, db=db, markup=markup, may_edit=may_edit)
+    if mark:
+        await notify_sent(task, user_to_notify, db)
+    return msg
 
 
 if __name__ == "__main__":

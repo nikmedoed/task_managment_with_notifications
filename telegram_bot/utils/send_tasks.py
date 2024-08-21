@@ -9,7 +9,7 @@ from database.db_sessionmaker import get_db
 from database.models import Task, User, CommentType, Statuses
 from shared.app_config import app_config
 from shared.db import add_error, add_notification, get_notifications
-
+from telegram_bot.bot import bot
 
 def get_telegram_task_text(task: Task, event: str = "") -> str:
     task_info = (
@@ -91,7 +91,7 @@ def format_comment(comment):
     return comment_info
 
 
-async def delete_notifications(notifications, bot: Bot, db: AsyncSession):
+async def delete_notifications(notifications, db: AsyncSession):
     for notification in notifications:
         try:
             await bot.delete_message(notification.user.telegram_id, notification.telegram_message_id)
@@ -108,16 +108,10 @@ async def delete_notifications(notifications, bot: Bot, db: AsyncSession):
                                 notification.user_id, db)
 
 
-async def send_task_message(text: str, task: Task, user: User,
-                            user_message: Message = None,
-                            db: AsyncSession = None,
-                            markup: InlineKeyboardMarkup = None,
-                            bot: Bot = None,
-                            may_edit: bool = False) -> Message | None:
+async def send_task_message(text: str, task: Task, user: User, user_message: Message = None, db: AsyncSession = None,
+                            markup: InlineKeyboardMarkup = None, may_edit: bool = False) -> Message | None:
     if db is None:
         db = await anext(get_db())
-    if not bot:
-        from telegram_bot.bot import bot
 
     notifications = await get_notifications(task.id, user.id, db)
     new_message = None
@@ -153,10 +147,9 @@ async def send_task_message(text: str, task: Task, user: User,
         except TelegramAPIError as e:
             logging.error(f"Failed to edit message {latest_notification.telegram_message_id}: {e}")
 
-    # Удаление всех оставшихся уведомлений (если редактирование не удалось или его не было)
-    await delete_notifications(notifications, bot, db)
+    # Удаление всех оставшихся уведомлений
+    await delete_notifications(notifications, db)
 
-    # Если редактирование не удалось или уведомлений не было, отправляем новое сообщение
     if not new_message:
         try:
             if user_message:
