@@ -7,9 +7,9 @@ from sqlalchemy import cast, Date, and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from database import async_dbsession, get_db
+from database import async_dbsession
 from database.models import (Task, NOTIFICATION_STATUSES, Comment)
-from shared.db import get_notifications
+from shared.db import get_notifications, notify_sent
 from telegram_bot.utils.keyboards import generate_status_keyboard
 from telegram_bot.utils.send_tasks import get_telegram_task_text, send_task_message, delete_notifications
 
@@ -54,17 +54,19 @@ async def notify_everyday_tasks_deadlines(bot: Bot = None):
             event_msg = (f"Напоминание о задаче со сроком через "
                          f"{days_remain} {DAYS_WORD.get(days_remain, 'дней')}")
 
-            await send_notify(task, db, bot, event_msg=event_msg, may_edit=False)
+            await send_notify(task, db, bot, event_msg=event_msg, may_edit=False, mark=True)
             await asyncio.sleep(0.1)
 
 
-async def send_notify(task: Task, db: AsyncSession, bot: Bot, event_msg: str = "", may_edit=False):
+async def send_notify(task: Task, db: AsyncSession, bot: Bot, event_msg: str = "", may_edit=False, mark=False):
     user_to_notify = task.whom_notify()
     if not user_to_notify:
         logging.warning(f"No relevant user to notify about {task} - {task.description}")
         notifications = await get_notifications(task.id, db=db)
         await delete_notifications(notifications, bot, db)
         return
+
+    await notify_sent(task, user_to_notify, db)
 
     text = get_telegram_task_text(task, event_msg)
     markup = generate_status_keyboard(user_to_notify, task)

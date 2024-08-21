@@ -73,6 +73,11 @@
                     {% endif %}
                 </p>
 
+                {% if task.last_notification_date %}
+                <p class="text-muted " style="font-size: 0.875rem;">
+                    Последнее уведомление: {{ task.last_notification_date.strftime('%d.%m.%Y %H:%M') }}
+                </p>
+                {% endif %}
                 <!-- Таблица переноса, доработок и уведомлений -->
                 <table class="table table-hover">
                     <thead>
