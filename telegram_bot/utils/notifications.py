@@ -62,6 +62,8 @@ async def send_notify(task: Task, db: AsyncSession, event_msg: str = "", may_edi
         await delete_notifications(notifications, db)
         return
 
+    await notify_sent(task, user_to_notify, db)
+
     text = get_telegram_task_text(task, event_msg)
     markup = generate_status_keyboard(user_to_notify, task)
 
