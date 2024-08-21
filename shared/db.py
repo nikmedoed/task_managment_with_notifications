@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Dict, Sequence
 from typing import Optional
 
@@ -17,7 +17,7 @@ async def get_user_by_tg(telegram_id: int, db: AsyncSession = Depends(get_db)):
     return result.scalars().first()
 
 
-async def get_task_by_id(task_id: int, db: AsyncSession = Depends(get_db)) -> Task|None:
+async def get_task_by_id(task_id: int, db: AsyncSession = Depends(get_db)) -> Task | None:
     query = (
         select(Task)
         .options(
@@ -87,6 +87,17 @@ async def add_comment(task: Task, user: User, comment: str = None, db: AsyncSess
     return new_comment
 
 
+async def notify_sent(task: Task, user: User, db: AsyncSession = Depends(get_db)) -> Comment:
+    new_comment = Comment(
+        type=CommentType.notify_sent,
+        task_id=task.id,
+        user_id=user.id,
+        author_roles=list(task.get_user_roles(user.id))
+    )
+    db.add(new_comment)
+    return new_comment
+
+
 async def date_change(task: Task, user: User,
                       new_plan_date: date,
                       comment: str = None,
@@ -116,11 +127,15 @@ async def status_change(task: Task, user: User,
                         new_status: Statuses,
                         comment: str = None,
                         user_roles=None,
-                        db: AsyncSession = Depends(get_db)) -> Comment:
+                        db: AsyncSession = Depends(get_db)) -> Comment | None:
+    if task.status == new_status:
+        return
     if not user_roles:
         user_roles = task.get_user_roles(user.id)
     previous_status = task.status
     task.status = new_status
+    if new_status == Statuses.REWORK:
+        task.rework_count += 1
     new_comment = Comment(
         type=CommentType.status_change,
         task_id=task.id,
@@ -169,4 +184,6 @@ async def add_notification(task: Task, user_id: int, message_id: int,
     )
     db.add(new_notification)
     task.notification_count += 1
+    task.last_notification_date = datetime.now()
     await db.commit()
+    await db.refresh(task)

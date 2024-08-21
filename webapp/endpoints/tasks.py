@@ -1,7 +1,6 @@
 import os
 import shutil
 import uuid
-from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Request, Form, UploadFile
@@ -135,21 +134,20 @@ async def update_plan_date(
         raise HTTPException(status_code=422, detail="Комментарий обязателен для изменения даты исполнителем")
 
     await date_change(task, request.state.user, new_plan_date, executor_comment, db=db)
-
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
 
 @router.get("/{task_id}/duplicate", response_class=HTMLResponse)
 async def duplicate_task(request: Request, task_id: int, db: AsyncSession = Depends(get_db)):
-    task = await db.get(Task, task_id)
+    task: Optional[Task] = await db.get(Task, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Задача не найдена")
+    user_roles = task.get_user_roles(request.state.user.id)
     if task.status != Statuses.CANCELED:
-        if UserRole.SUPPLIER not in task.get_user_roles(request.state.user.id):
+        if UserRole.SUPPLIER not in user_roles:
             raise HTTPException(status_code=400, detail="Недопустимый переход статуса")
-        task.status = Statuses.CANCELED
-        await db.commit()
-    await task.set_cancel_if_not(db)
+        await status_change(task, request.state.user, Statuses.CANCELED,
+                            "Пересоздание задачи", user_roles, db)
     common_data = await get_task_edit_common_data(db)
     return templates.TemplateResponse("forms/task.html", {
         "request": request,
@@ -179,7 +177,6 @@ async def update_role(
     if not new_user:
         raise HTTPException(status_code=404, detail="Нет такого пользователя")
 
-    old_user = None
     user_changed = False
 
     if role == "executor":
@@ -234,7 +231,7 @@ async def update_task_status(
         status_comment: Optional[str] = Form(None),
         db: AsyncSession = Depends(get_db)
 ):
-    task = await db.get(Task, task_id)
+    task: Optional[Task] = await db.get(Task, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Задача не найдена")
 

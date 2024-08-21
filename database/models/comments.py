@@ -19,8 +19,8 @@ class CommentType(enum.Enum):
     status_change = "Изменение статуса"
     date_change = "Изменение даты"
     user_change = "Смена пользователя"
-    notify_sent = "Cистема отправила уведомление"
-    notified = "Прочитал уведомление"
+    notify_sent = "Система отправила напоминание в телеграм"
+    notified = "Ознакомился с задачей в телеграм"
 
 
 class CommentUserRoleAssociation(BaseModel):

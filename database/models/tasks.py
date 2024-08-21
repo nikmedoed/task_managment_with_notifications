@@ -114,11 +114,6 @@ class Task(BaseModel):
         else:
             raise ValueError(f"Недопустим перевод из статуса '{self.status}' в '{new_status}'")
 
-    async def set_cancel_if_not(self, session: AsyncSession):
-        if self.status != Statuses.CANCELED:
-            self.update_status(Statuses.CANCELED)
-            await session.commit()
-
     @hybrid_property
     def documents(self):
         documents = []

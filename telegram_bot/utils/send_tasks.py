@@ -35,7 +35,7 @@ def get_telegram_task_text(task: Task, event: str = "") -> str:
         has_comment = False
 
         for comment in reversed(task.comments):
-            if comment.type in {CommentType.error, CommentType.notified}:
+            if comment.type in {CommentType.error, CommentType.notified, CommentType.notify_sent}:
                 continue
             has_comment = has_comment or comment.type == CommentType.comment
             comments.append(format_comment(comment))
@@ -89,6 +89,7 @@ def format_comment(comment):
         comment_info += f"\n{documents_info}"
 
     return comment_info
+
 
 async def delete_notifications(notifications, bot: Bot, db: AsyncSession):
     for notification in notifications:
