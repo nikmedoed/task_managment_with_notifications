@@ -1,11 +1,8 @@
 import io
-from datetime import datetime
-from datetime import timedelta
+from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi import BackgroundTasks
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, FileResponse, Response
 from pydantic import ValidationError
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,7 +29,8 @@ async def avatar_endpoint(request: Request, user_id: int = None,
     if user_id:
         user = await db.get(User, user_id)
         if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+            # Возвращаем 204 (No Content), если пользователь не найден, вместо исключения
+            return Response(status_code=204)
 
     avatar_path = AVATAR_DIR / f"{user.id}.jpg"
 
@@ -44,13 +42,14 @@ async def avatar_endpoint(request: Request, user_id: int = None,
         }
         background_tasks.add_task(save_avatar_to_disk, user)
         return FileResponse(avatar_path, headers=headers)
-    else:
-        avatar_data = await get_user_avatar(user.telegram_id)
-        if avatar_data:
-            background_tasks.add_task(save_avatar_to_disk, user)
-            return StreamingResponse(io.BytesIO(avatar_data), media_type="image/jpeg")
-        else:
-            raise HTTPException(status_code=404, detail="Avatar not found")
+
+    avatar_data = await get_user_avatar(user.telegram_id)
+    if avatar_data:
+        background_tasks.add_task(save_avatar_to_disk, user)
+        return StreamingResponse(io.BytesIO(avatar_data), media_type="image/jpeg")
+
+    # Если аватар не найден, возвращаем 204 (No Content)
+    return Response(status_code=204)
 
 
 @router.get("", response_class=HTMLResponse)
