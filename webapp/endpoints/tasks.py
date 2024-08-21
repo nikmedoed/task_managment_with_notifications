@@ -51,7 +51,7 @@ async def create_task(
         "supplier_id": user.id,
         "supervisor_id": supervisor_id,
         "executor_id": executor_id,
-        "initial_plan_date": datetime.combine(initial_plan_date, datetime.min.time()),
+        "initial_plan_date": initial_plan_date,
         "description": description,
         "important": important
     }

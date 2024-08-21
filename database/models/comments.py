@@ -19,6 +19,7 @@ class CommentType(enum.Enum):
     status_change = "Изменение статуса"
     date_change = "Изменение даты"
     user_change = "Смена пользователя"
+    notify_sent = "Cистема отправила уведомление"
     notified = "Прочитал уведомление"
 
 

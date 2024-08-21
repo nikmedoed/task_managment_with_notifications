@@ -1,8 +1,8 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, TYPE_CHECKING
 
 import pytz
-from sqlalchemy import (Column, Integer, ForeignKey, DateTime, Text,
+from sqlalchemy import (Column, Integer, ForeignKey, DateTime, Text,Date,
                         Enum as SQLAlchemyEnum, select, Boolean)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -46,8 +46,8 @@ class Task(BaseModel):
     supplier_id: int = Column(Integer, ForeignKey('users.id'), nullable=False)
     supervisor_id: int = Column(Integer, ForeignKey('users.id'), nullable=False)
     executor_id: int = Column(Integer, ForeignKey('users.id'), nullable=False)
-    initial_plan_date: datetime = Column(DateTime(timezone=True), nullable=False)
-    actual_plan_date: datetime = Column(DateTime(timezone=True), nullable=False)
+    initial_plan_date: date = Column(Date, nullable=False)
+    actual_plan_date: date = Column(Date, nullable=False)
     last_notification_date: datetime = Column(DateTime(timezone=True), nullable=True)
     description: str = Column(Text, nullable=False)
     rework_count: int = Column(Integer, default=0, nullable=False)
@@ -84,7 +84,7 @@ class Task(BaseModel):
     @hybrid_property
     def days_remain(self):
         if self.actual_plan_date:
-            delta = self.actual_plan_date.astimezone(pytz.UTC) - datetime.now(pytz.UTC)
+            delta = self.actual_plan_date - date.today()
             return delta.days
         return None
 

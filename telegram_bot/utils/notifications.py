@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import date, timedelta
 
 from aiogram import Bot
 from sqlalchemy import cast, Date, and_, select
@@ -33,8 +33,8 @@ async def notify_everyday_tasks_deadlines(bot: Bot = None):
     if not bot:
         from telegram_bot.bot import bot
 
-    now = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    date_ranges = [(now + timedelta(days=x)).date() for x in WHEN_REMEMBER]
+    now = date.today()
+    date_ranges = [(now + timedelta(days=x)) for x in WHEN_REMEMBER]
 
     tasks_query = select(Task).options(
         joinedload(Task.comments).joinedload(Comment.user),

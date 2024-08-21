@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date
 from typing import Optional, List
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
@@ -79,10 +79,10 @@ class TaskCreate(BaseModel):
     supplier_id: int
     supervisor_id: int
     executor_id: int
-    initial_plan_date: datetime
+    initial_plan_date: date
     description: str
     important: bool
-    actual_plan_date: datetime = Field(None)
+    actual_plan_date: date = Field(None)
 
     @field_validator('status')
     def check_status(cls, value):
