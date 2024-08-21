@@ -18,7 +18,7 @@ async def edit_or_resend_message(bot: Bot, chat_id: int, message_id: int, text: 
     return message_id
 
 
-async def delete_message_after_delay(bot: Bot, chat_id: int, message_id: int):
+async def delete_message_after_delay(chat_id: int, message_id: int):
     await asyncio.sleep(TIME_TO_DELETE)
     await bot.delete_message(chat_id=chat_id, message_id=message_id)
 
@@ -26,8 +26,7 @@ async def delete_message_after_delay(bot: Bot, chat_id: int, message_id: int):
 async def send_autodelete_message(text: str, chat_id: int, message: Message = None):
     text = f"{text}\n\n<i>Сообщение автоматически удалится через {TIME_TO_DELETE} секунд</i>."
     if message:
-        chat_id = message.from_user.id
-        message = await message.answer(text)
+        new_message = await message.answer(text)
     else:
-        message = await bot.send_message(chat_id, text)
-    asyncio.ensure_future(delete_message_after_delay(bot, chat_id, message.message_id))
+        new_message = await bot.send_message(chat_id, text)
+    asyncio.ensure_future(delete_message_after_delay(chat_id, new_message.message_id))

@@ -108,6 +108,7 @@ async def date_change(task: Task, user: User,
     )
     db.add(new_comment)
     await db.commit()
+    await db.refresh(task)
     return new_comment
 
 
