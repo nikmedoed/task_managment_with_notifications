@@ -33,6 +33,10 @@ class TelegramConfig(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix='BOT_', env_file=DOTENV_PATH, extra='ignore')
 
+    @property
+    def bot_link(self) -> str:
+        return f"https://t.me/{self.username}"
+
 
 class RedisConfig(BaseSettings):
     host: str = "localhost"
@@ -55,7 +59,7 @@ class AppConfig(BaseSettings):
     port: int = 8000
     host: str = '0.0.0.0'
     log_level: str = 'info'
-    domain: str='http://127.0.0.1'
+    domain: str = 'http://127.0.0.1'
 
     database: DatabaseConfig = DatabaseConfig()
     telegram: TelegramConfig = TelegramConfig()
