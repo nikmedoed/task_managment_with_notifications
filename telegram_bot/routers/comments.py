@@ -16,7 +16,6 @@ router = Router()
 
 @router.message(F.reply_to_message)
 async def handle_reply(message: Message, user: User, db: AsyncSession):
-    bot = message.bot
     if not message.reply_to_message:
         await message.reply(
             "Для комментирования нужно использовать функцию 'ответить' на сообщение (reply). "

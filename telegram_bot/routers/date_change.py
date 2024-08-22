@@ -1,4 +1,3 @@
-from datetime import datetime
 from functools import reduce
 
 from aiogram import Router, Bot, F
