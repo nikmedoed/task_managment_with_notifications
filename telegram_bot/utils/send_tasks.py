@@ -1,17 +1,22 @@
 import logging
 
-from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message, InlineKeyboardMarkup
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.db_sessionmaker import get_db
+from database.db_sessionmaker import get_db_safety
 from database.models import Task, User, CommentType, Statuses
 from shared.app_config import app_config
-from shared.db import add_error, add_notification, get_notifications
+from shared.db import add_error, add_notification, get_notifications, get_task_by_id
 from telegram_bot.bot import bot
+from telegram_bot.utils.keyboards import generate_status_keyboard
+
 
 def get_telegram_task_text(task: Task, event: str = "") -> str:
+
+    # task.get_user_roles()
+    # f"Ваша роль: {task.get_user_roles_text(user_to_notify.id)}
+
     task_info = (
         f"<b>№ п/п:</b> /{task.id}{' ❗️<b>важная</b>' if task.important else ''}\n"
         f"<b>Создано:</b> {task.time_created.strftime('%d.%m.%Y')}\n"
@@ -109,63 +114,81 @@ async def delete_notifications(notifications, db: AsyncSession):
 
 
 async def send_task_message(text: str, task: Task, user: User, user_message: Message = None, db: AsyncSession = None,
-                            markup: InlineKeyboardMarkup = None, may_edit: bool = False) -> Message | None:
-    if db is None:
-        db = await anext(get_db())
+                            markup: InlineKeyboardMarkup = None, may_edit: bool = False,
+                            no_new: bool = False) -> Message | None:
+    async with get_db_safety(db) as db:
+        task = await db.merge(task)
+        notifications = await get_notifications(task.id, user.id, db)
+        new_message = None
 
-    notifications = await get_notifications(task.id, user.id, db)
-    new_message = None
+        if notifications and may_edit:
+            latest_notification = notifications[-1]
+            try:
+                edit_success = False
+                if text:
+                    try:
+                        new_message = await bot.edit_message_text(
+                            chat_id=latest_notification.user.telegram_id,
+                            message_id=latest_notification.telegram_message_id,
+                            text=text
+                        )
+                        edit_success = True
+                    except TelegramAPIError as e:
+                        if "message content and reply markup are exactly" not in str(e):
+                            raise e
+                if markup:
+                    try:
+                        new_message = await bot.edit_message_reply_markup(
+                            chat_id=latest_notification.user.telegram_id,
+                            message_id=latest_notification.telegram_message_id,
+                            reply_markup=markup
+                        )
+                        edit_success = True
+                    except TelegramAPIError as e:
+                        if "message content and reply markup are exactly" not in str(e):
+                            raise e
+                if edit_success:
+                    notifications = notifications[:-1]
+            except TelegramAPIError as e:
+                logging.error(f"Failed to edit message {latest_notification.telegram_message_id}: {e}")
 
-    if notifications and may_edit:
-        latest_notification = notifications[-1]
-        try:
-            edit_success = False
-            if text:
-                try:
-                    new_message = await bot.edit_message_text(
-                        chat_id=latest_notification.user.telegram_id,
-                        message_id=latest_notification.telegram_message_id,
-                        text=text
-                    )
-                    edit_success = True
-                except TelegramAPIError as e:
-                    if "message content and reply markup are exactly" not in str(e):
-                        raise e
-            if markup:
-                try:
-                    new_message = await bot.edit_message_reply_markup(
-                        chat_id=latest_notification.user.telegram_id,
-                        message_id=latest_notification.telegram_message_id,
+        # Удаление всех оставшихся уведомлений
+        await delete_notifications(notifications, db)
+
+        if not new_message and not no_new:
+            try:
+                if user_message:
+                    new_message = await user_message.answer(
+                        text,
                         reply_markup=markup
                     )
-                    edit_success = True
-                except TelegramAPIError as e:
-                    if "message content and reply markup are exactly" not in str(e):
-                        raise e
-            if edit_success:
-                notifications = notifications[:-1]
-        except TelegramAPIError as e:
-            logging.error(f"Failed to edit message {latest_notification.telegram_message_id}: {e}")
+                else:
+                    new_message = await bot.send_message(
+                        chat_id=user.telegram_id,
+                        text=text,
+                        reply_markup=markup
+                    )
+                await add_notification(task, user.id, new_message.message_id, db)
+            except TelegramAPIError as e:
+                logging.error(f"Failed to send message to {user.telegram_id} for task {task.id}: {e}")
+                await add_error(task.id, f"Ошибка отправки уведомления:\n{e}", user.id, db)
 
-    # Удаление всех оставшихся уведомлений
-    await delete_notifications(notifications, db)
+        return new_message
 
-    if not new_message:
-        try:
-            if user_message:
-                new_message = await user_message.answer(
-                    text,
-                    reply_markup=markup
-                )
-            else:
-                new_message = await bot.send_message(
-                    chat_id=user.telegram_id,
-                    text=text,
-                    reply_markup=markup
-                )
-            await add_notification(task, user.id, new_message.message_id, db)
-        except TelegramAPIError as e:
-            logging.error(f"Failed to send message to {user.telegram_id} for task {task.id}: {e}")
-            await add_error(task.id, f"Ошибка отправки уведомления:\n{e}", user.id, db)
 
-    return new_message
+async def check_task(task: Task, db: AsyncSession):
+    try:
+        len(task.comments)
+    except:
+        task = await get_task_by_id(task.id, db)
+    return task
+
+
+async def broadcast_task(task: Task, comment=None, db: AsyncSession = None):
+    async with get_db_safety(db) as db:
+        task = await db.merge(task)
+        task = await check_task(task, db)
+        task_info = get_telegram_task_text(task, comment)
+        for user in task.users:
+            await send_task_message(task_info, task, user, db=db,
+                                    markup=generate_status_keyboard(user, task), may_edit=True)

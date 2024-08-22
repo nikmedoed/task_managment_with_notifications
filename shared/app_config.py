@@ -33,22 +33,25 @@ class TelegramConfig(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix='BOT_', env_file=DOTENV_PATH, extra='ignore')
 
+    @property
+    def bot_link(self) -> str:
+        return f"https://t.me/{self.username}"
+
 
 class RedisConfig(BaseSettings):
     host: str = "localhost"
     port: int = 6379
     db: int = 0
     password: Optional[str] = None
-    secure: Optional[bool] = True
+    cookie_secure: Optional[bool] = True
 
     model_config = SettingsConfigDict(env_prefix='REDIS_', env_file=DOTENV_PATH, extra='ignore')
 
     @property
     def url(self) -> str:
-        protocol = "rediss" if self.secure else "redis"
         if self.password:
-            return f"{protocol}://{self.password}@{self.host}:{self.port}/{self.db}"
-        return f"{protocol}://{self.host}:{self.port}/{self.db}"
+            return f"redis://{self.password}@{self.host}:{self.port}/{self.db}"
+        return f"redis://{self.host}:{self.port}/{self.db}"
 
 
 class AppConfig(BaseSettings):
@@ -56,7 +59,7 @@ class AppConfig(BaseSettings):
     port: int = 8000
     host: str = '0.0.0.0'
     log_level: str = 'info'
-    domain: str='http://127.0.0.1'
+    domain: str = 'http://127.0.0.1'
 
     database: DatabaseConfig = DatabaseConfig()
     telegram: TelegramConfig = TelegramConfig()

@@ -12,8 +12,8 @@ REDIS_KEY_USER_REGISTER = "user_register"
 
 class RedisTokenManager(redis.Redis):
     def __init__(self, *args, jwt_secret_key: str, **kwargs):
-        self.secure = kwargs['secure']
-        del kwargs['secure']
+        self.secure = kwargs['cookie_secure']
+        del kwargs['cookie_secure']
         super().__init__(*args, **kwargs)
         self.jwt_secret_key = jwt_secret_key
 

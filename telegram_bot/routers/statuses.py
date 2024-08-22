@@ -1,6 +1,6 @@
 import logging
 
-from aiogram import Router, Bot, F
+from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import CallbackQuery, Message
@@ -23,7 +23,7 @@ class CommentStates(StatesGroup):
 @router.callback_query(StatusChangeCallback.filter())
 async def handle_status_change(callback_query: CallbackQuery,
                                callback_data: StatusChangeCallback, state: FSMContext,
-                               user: User, db: AsyncSession, bot: Bot):
+                               user: User, db: AsyncSession):
     task = await get_task_by_id(callback_data.task_id, db)
     if not task:
         await callback_query.answer("Задача не найдена", show_alert=True)
@@ -53,7 +53,7 @@ async def handle_status_change(callback_query: CallbackQuery,
         return
 
     if not is_valid_transition(task.status, new_status, user_roles):
-        await callback_query.answer("Недопустимый перевод статуса для вашей роли", show_alert=True)
+        await callback_query.answer("Недопустимый перевод статуса для вашей роли сейчас", show_alert=True)
         return
 
     if new_status in SHOULD_BE_COMMENTED:
@@ -66,8 +66,7 @@ async def handle_status_change(callback_query: CallbackQuery,
         await state.set_state(CommentStates.waiting_for_comment)
         await callback_query.answer("Обоснуйте")
     else:
-        await run_status_change(task, user, new_status, db, bot, callback_query,
-                                comment="Изменено из бота")
+        await run_status_change(task, user, new_status, db, callback_query, comment="Изменено из бота")
 
 
 @router.message(CommentStates.waiting_for_comment)
@@ -110,62 +109,71 @@ async def submit_comment(callback_query: CallbackQuery, state: FSMContext, db: A
         await state.clear()
         return
 
-    if await run_status_change(task, user, new_status, db, bot, callback_query, comment):
+    if await run_status_change(task, user, new_status, db, callback_query, comment):
         await callback_query.message.delete()
         await state.clear()
 
 
-async def run_status_change(task: Task, user: User, new_status: Statuses, db: AsyncSession,
-                            bot: Bot, callback_query: CallbackQuery, comment=None):
-    previous_status = task.status.value
-    change = await status_change(task, user, new_status, comment, db=db)
-    if not change:
-        await callback_query.answer("Проблема при смене статуса")
-        return
-    await callback_query.answer(f"Статус изменен на {new_status.value}")
+async def run_status_change(task: Task, user: User, new_status: Statuses, db: AsyncSession = None,
+                            callback_query: CallbackQuery = None, comment=None):
+    async with get_db_safety(db) as db:
+        task = await db.merge(task)
+        previous_status = task.status.value
+        change = await status_change(task, user, new_status, comment, db=db)
+        if not change:
+            if callback_query:
+                await callback_query.answer("Проблема при смене статуса", show_alert=True)
+            return
+        if callback_query:
+            await callback_query.answer(f"Статус изменен на {new_status.value}")
 
-    user_to_notify = task.whom_notify()
+        user_to_notify = task.whom_notify()
+        message = callback_query and callback_query.message
+        info = (f"Статус задачи /{task.id} успешно изменён\n"
+                f"\"<b>{previous_status}</b>\" → \"<b>{new_status.value}</b>\".\n\n")
+        if new_status in COMPLETED_STATUSES:
+            await send_autodelete_message(
+                f"{info}"
+                f"<a href='{app_config.domain}/tasks/{task.id}'>Задача</a> в "
+                f"<a href='{app_config.domain}/tasks_archive'>архиве</a>.",
+                chat_id=user.telegram_id,
+                message=message)
 
-    info = (f"Статус задачи /{task.id} успешно изменён\n"
-            f"\"<b>{previous_status}</b>\" → \"<b>{new_status.value}</b>\".\n\n")
-    if new_status in COMPLETED_STATUSES:
-        await send_autodelete_message(
-            f"{info}"
-            f"<a href='{app_config.domain}/tasks/{task.id}'>Задача</a> в "
-            f"<a href='{app_config.domain}/tasks_archive'>архиве</a>.",
-            chat_id=user.telegram_id,
-            message=callback_query.message)
+            notifications = await get_notifications(task.id, db=db)
+            await delete_notifications(notifications, db)
+            return
 
-        notifications = await get_notifications(task.id, user.id, db)
-        await delete_notifications(notifications, db)
-        return
+        if not user_to_notify:
+            await add_error(task.id, f"Не получилось определить ответственного за статус {new_status.value}", user.id)
+            text = (
+                f"{info}"
+                f"⚠️ Cтатус не считается конечным, но ответственного за статус не получилось определить.\n"
+                f"Пожалуйста перейдите в <a href='{app_config.domain}/tasks/{task.id}'>карточку задачи на сайте</a> "
+                f"и проверьте назначенных пользователей."
+            )
+            if message:
+                await message.answer(text)
+            else:
+                from telegram_bot.bot import bot
+                await bot.send_message(task.supplier.telegram_id, text)
+            return
 
-    if not user_to_notify:
-        await add_error(task.id, f"Не получилось определить ответственного за статус {new_status.value}", user.id)
-        message = await callback_query.message.answer(
-            f"{info}"
-            f"⚠️ Cтатус не считается конечным, но ответственного за статус не получилось определить.\n"
-            f"Пожалуйста перейдите в <a href='{app_config.domain}/tasks/{task.id}'>карточку задачи на сайте</a> "
-            f"и проверьте назначенных пользователей."
-        )
-        return
+        logging.info(f"run_status_change {previous_status} -> {new_status.value} "
+                     f"notify {user_to_notify.id}::{user_to_notify.full_name} "
+                     f"actor {user.id}::{user.full_name}")
 
-    logging.info(f"{previous_status} -> {new_status.value} "
-                 f"notify {user_to_notify.id}::{user_to_notify.full_name} "
-                 f"actor {user.id}::{user.full_name}")
+        if user_to_notify.id != user.id:
+            notifications = await get_notifications(task.id, user.id, db)
+            await delete_notifications(notifications, db)
 
-    if user_to_notify.id != user.id:
-        notifications = await get_notifications(task.id, user.id, db)
-        await delete_notifications(notifications, db)
+            await send_autodelete_message(
+                f"{info}"
+                f"Текущий ответственный: <a href='{user.telegram_bot_link}'>{user_to_notify.full_name}</a>.\n"
+                f"Система отправит уведомление и проконтролирует исполнение.",
+                chat_id=user.telegram_id,
+                message=message)
 
-        await send_autodelete_message(
-            f"{info}"
-            f"Текущий ответственный: <a href='{user.telegram_bot_link}'>{user_to_notify.full_name}</a>.\n"
-            f"Система отправит уведомление и проконтролирует исполнение.",
-            chat_id=user.telegram_id,
-            message=callback_query.message)
-
-    notify = await send_notify(task, db, event_msg=f"Новая задача в статусе: {new_status.value}\n"
-                                                   f"Ваша роль: {task.get_user_roles_text(user_to_notify.id)}",
-                               may_edit=True)
-    return change
+        await db.refresh(task)
+        notify = await send_notify(task, db, may_edit=True, full_refresh=True,
+                                   event_msg=f"Смена статуса на: {new_status.value}")
+        return change

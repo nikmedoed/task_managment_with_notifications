@@ -23,7 +23,7 @@ async def cancel_comment(callback_query: CallbackQuery, state: FSMContext):
 async def handle_acknowledge(call: CallbackQuery, callback_data: AcknowledgeCallback, user: User, db: AsyncSession):
     task: Optional[Task] = await db.get(Task, callback_data.task_id)
     if not task:
-        await call.answer("Задача более недоступна в базе")
+        await call.answer("Задача более недоступна в базе", show_alert=True)
         return
     await add_comment(task, user, db=db)
     await call.message.delete()
