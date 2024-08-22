@@ -39,16 +39,15 @@ class RedisConfig(BaseSettings):
     port: int = 6379
     db: int = 0
     password: Optional[str] = None
-    secure: Optional[bool] = True
+    cookie_secure: Optional[bool] = True
 
     model_config = SettingsConfigDict(env_prefix='REDIS_', env_file=DOTENV_PATH, extra='ignore')
 
     @property
     def url(self) -> str:
-        protocol = "rediss" if self.secure else "redis"
         if self.password:
-            return f"{protocol}://{self.password}@{self.host}:{self.port}/{self.db}"
-        return f"{protocol}://{self.host}:{self.port}/{self.db}"
+            return f"redis://{self.password}@{self.host}:{self.port}/{self.db}"
+        return f"redis://{self.host}:{self.port}/{self.db}"
 
 
 class AppConfig(BaseSettings):
