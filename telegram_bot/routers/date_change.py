@@ -63,7 +63,7 @@ async def initiate_date_change(callback_query: CallbackQuery, callback_data: Pla
 
     user_permissions = task.user_permission(user.id)
     if not user_permissions.can_change_date:
-        await callback_query.answer("Вы не можете изменить дату", show_alert=True)
+        await callback_query.answer("Вы не можете изменить дату сейчас", show_alert=True)
         return
 
     await state.update_data(task_id=task.id, must_comment=user_permissions.must_comment_date)
@@ -194,7 +194,8 @@ async def finalize_date_change(task: Task, user: User, new_plan_date: datetime.d
                                message: Message, db: AsyncSession, bot: Bot):
     old_plan_date = task.actual_plan_date
     await date_change(task, user, new_plan_date, comment, db=db)
-    await send_notify(task, db, event_msg=f"Смена плановой даты задачи на\n{task.formatted_plan_date}", may_edit=True)
+    await send_notify(task, db, may_edit=True, full_refresh=True,
+                      event_msg=f"Смена плановой даты задачи на\n{task.formatted_plan_date}")
     user_data = await state.get_data()
     message_id = user_data.get('message_id')
     await state.clear()

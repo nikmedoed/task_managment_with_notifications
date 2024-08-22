@@ -1,15 +1,20 @@
+import asyncio
 import os
 import shutil
 import uuid
 from typing import List
 
-from fastapi import APIRouter, HTTPException, Request, Form, UploadFile
+from fastapi import APIRouter, HTTPException, Request, Form, UploadFile, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import ValidationError
 
+from database.db_sessionmaker import get_db
 from database.models import Document
 from database.models.statuses import *
 from shared.db import *
+from telegram_bot.routers.statuses import run_status_change
+from telegram_bot.utils.notifications import send_notify, notify_when_user_changed
+from telegram_bot.utils.send_tasks import broadcast_task
 from webapp.deps import templates
 from webapp.schemas import TaskCreate
 
@@ -61,6 +66,8 @@ async def create_task(
         db.add(new_task)
         await db.commit()
         await db.refresh(new_task)
+        if status_enum != Statuses.DRAFT:
+            asyncio.ensure_future(send_notify(task=new_task, event_msg="Новая задача"))
     except (ValidationError, Exception) as e:
         common_data = await get_task_edit_common_data(db)
         errors = e.errors() if isinstance(e, ValidationError) else [{"msg": str(e), "loc": ["database"]}]
@@ -134,6 +141,9 @@ async def update_plan_date(
         raise HTTPException(status_code=422, detail="Комментарий обязателен для изменения даты исполнителем")
 
     await date_change(task, request.state.user, new_plan_date, executor_comment, db=db)
+
+    asyncio.ensure_future(send_notify(task=task, may_edit=True, full_refresh=True,
+                                      event_msg=f"Смена плановой даты задачи на\n{task.formatted_plan_date}"))
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
 
@@ -169,11 +179,11 @@ async def update_role(
         request: Request, task_id: int, role: str, new_user_id: int = Form(...),
         db: AsyncSession = Depends(get_db)
 ):
-    task = await db.get(Task, task_id)
+    task: Optional[Task] = await db.get(Task, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Задача не найдена")
 
-    new_user = await db.get(User, new_user_id)
+    new_user: Optional[User] = await db.get(User, new_user_id)
     if not new_user:
         raise HTTPException(status_code=404, detail="Нет такого пользователя")
 
@@ -181,6 +191,7 @@ async def update_role(
 
     if role == "executor":
         old_user = task.executor
+        role = UserRole.EXECUTOR
         if old_user.id != new_user_id:
             task.executor_id = new_user_id
             user_changed = True
@@ -189,11 +200,14 @@ async def update_role(
                                     "Сброс статуса из-за смены исполнителя", db=db)
     elif role == "supervisor":
         old_user = task.supervisor
+        role = UserRole.SUPERVISOR
         if old_user.id != new_user_id:
             task.supervisor_id = new_user_id
             user_changed = True
     else:
         raise HTTPException(status_code=400, detail="Некорректная роль")
+    await db.commit()
+    await db.refresh(task)
 
     if user_changed:
         user_change_comment = Comment(
@@ -216,9 +230,8 @@ async def update_role(
             }
         )
         db.add(user_change_comment)
-
-    db.add(task)
-    await db.commit()
+        await db.commit()
+        asyncio.ensure_future(notify_when_user_changed(task=task, old_user=old_user, new_user=new_user, role=role))
 
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
@@ -236,18 +249,22 @@ async def update_task_status(
         raise HTTPException(status_code=404, detail="Задача не найдена")
 
     user = request.state.user
-    status_enum = Statuses[new_status]
-    if status_enum == Statuses.REWORK:
+    new_status = Statuses[new_status]
+    if new_status == Statuses.REWORK:
         task.rework_count += 1
 
-    if status_enum in SHOULD_BE_COMMENTED and not status_comment:
+    if new_status in SHOULD_BE_COMMENTED and not status_comment:
         raise HTTPException(status_code=400, detail="Комментарий обязателен для этого статуса")
 
     user_roles = task.get_user_roles(user.id)
-    if not is_valid_transition(task.status, status_enum, user_roles):
-        raise HTTPException(status_code=400, detail="Недопустимый переход статуса")
+    if not is_valid_transition(task.status, new_status, user_roles):
+        raise HTTPException(status_code=400, detail="Недопустимый перевод статуса")
 
-    await status_change(task, user, status_enum, status_comment, user_roles, db)
+    await db.commit()
+    await db.refresh(task)
+    previously_notified = task.whom_notify()
+    asyncio.ensure_future(run_status_change(task, previously_notified, new_status,
+                                            comment=status_comment))
 
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)
 
@@ -257,7 +274,7 @@ async def add_comment_web(
         request: Request,
         task_id: int,
         comment: Optional[str] = Form(None),
-        files: List[UploadFile] = [],
+        files: List[UploadFile] = None,
         db: AsyncSession = Depends(get_db)
 ):
     user = request.state.user
@@ -265,7 +282,7 @@ async def add_comment_web(
     if not os.path.exists('documents'):
         os.makedirs('documents')
 
-    task = await db.get(Task, task_id)
+    task: Optional[Task] = await db.get(Task, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Задача не найдена")
 
@@ -274,21 +291,23 @@ async def add_comment_web(
 
     new_comment = await add_comment(task, user, comment, db)
 
-    for file in files:
-        if file.filename:
-            uuid_str = str(uuid.uuid4())
-            file_path = f"documents/{uuid_str}"
-            with open(file_path, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
-            new_document = Document(
-                uuid=uuid_str,
-                title=file.filename,
-                type=file.content_type,
-                author_id=user.id,
-                comment_id=new_comment.id
-            )
-            db.add(new_document)
+    if files:
+        for file in files:
+            if file.filename:
+                uuid_str = str(uuid.uuid4())
+                file_path = f"documents/{uuid_str}"
+                with open(file_path, "wb") as buffer:
+                    shutil.copyfileobj(file.file, buffer)
+                new_document = Document(
+                    uuid=uuid_str,
+                    title=file.filename,
+                    type=file.content_type,
+                    author_id=user.id,
+                    comment_id=new_comment.id
+                )
+                db.add(new_document)
 
     await db.commit()
     await db.refresh(new_comment)
+    asyncio.ensure_future(broadcast_task(task, "Новый комментарий по задаче"))
     return RedirectResponse(url=f"/tasks/{task_id}", status_code=303)

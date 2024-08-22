@@ -42,7 +42,7 @@ async def list_tasks(message: Message, user: User, db: AsyncSession):
                              f"<a href='{app_config.domain}/tasks/{task.id}'>{task.task_type.name}</a>\n"
                              f"{description}")
                 result.append(task_info)
-    if len(result)<2:
+    if len(result) < 2:
         result.append("\n\n<i>Нет задач</i>")
     messages = split_message_by_limit(result)
     for mes in messages:
