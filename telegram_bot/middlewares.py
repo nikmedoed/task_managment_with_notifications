@@ -52,8 +52,8 @@ class UserAndDBSessionCheckMiddleware(BaseMiddleware):
                     "Обратитесь к администратору для ускорения.")
                 return
 
-            if user.nickname != username:
-                user.nickname = username
+            if user.telegram_nick != username:
+                user.telegram_nick = username
                 await session.commit()
 
             data['db'] = session
