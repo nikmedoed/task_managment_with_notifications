@@ -40,7 +40,7 @@
             <i class="bi bi-arrow-right"/></i>
             "<span data-bs-toggle="tooltip" data-bs-placement="top"
                    data-bs-original-title="{{ comment.extra_data['new_user']['position'] }}">{{ comment.extra_data['new_user']['name'] }}</span>"
-            {% elif comment.type in (CommentType.notified, CommentType.notify_sent) %}
+            {% else %}
             {{ comment.type.value }}
             {% endif %}
         </small>
