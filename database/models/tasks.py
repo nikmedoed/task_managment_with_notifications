@@ -1,10 +1,8 @@
 from datetime import datetime, date
 from typing import List, TYPE_CHECKING
 
-import pytz
-from sqlalchemy import (Column, Integer, ForeignKey, DateTime, Text,Date,
+from sqlalchemy import (Column, Integer, ForeignKey, DateTime, Text, Date,
                         Enum as SQLAlchemyEnum, select, Boolean)
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, aliased
 
@@ -189,6 +187,10 @@ class Task(BaseModel):
             # is_executor=UserRole.EXECUTOR in user_roles,
             # is_supervisor=UserRole.SUPERVISOR in user_roles,
         )
+
+    @property
+    def users(self) -> set['User']:
+        return {self.supplier, self.supervisor, self.executor}
 
     @property
     def formatted_plan_date(self) -> str:

@@ -1,4 +1,5 @@
-from typing import AsyncGenerator
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator, Optional
 
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -47,3 +48,12 @@ async_dbsession: async_sessionmaker[AsyncSession] = db_manager.get_sessionmaker(
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with async_dbsession() as session:
         yield session
+
+
+@asynccontextmanager
+async def get_db_safety(existing_session: Optional[AsyncSession] = None) -> AsyncGenerator[AsyncSession, None]:
+    if existing_session:
+        yield existing_session
+    else:
+        async with async_dbsession() as session:
+            yield session

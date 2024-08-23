@@ -1,9 +1,10 @@
 import os
-from starlette.requests import Request
-from shared.app_config import app_config
-from .utils.RedisStore import RedisTokenManager
 
 from fastapi.templating import Jinja2Templates
+from starlette.requests import Request
+
+from shared.app_config import app_config
+from .utils.RedisStore import RedisTokenManager
 
 redis = RedisTokenManager(**app_config.redis.dict(), jwt_secret_key=app_config.telegram.jwt_secret_key)
 

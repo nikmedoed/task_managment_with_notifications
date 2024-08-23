@@ -1,7 +1,9 @@
-from ._base import BaseModel
+from typing import TYPE_CHECKING
+
 from sqlalchemy import Column, Integer, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
-from typing import TYPE_CHECKING
+
+from ._base import BaseModel
 
 if TYPE_CHECKING:
     from .tasks import Task

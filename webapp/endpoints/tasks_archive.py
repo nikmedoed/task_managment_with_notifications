@@ -12,10 +12,10 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
 from starlette.responses import HTMLResponse
 
+from database import get_db
 from database.models import Task
 from database.models.statuses import COMPLETED_STATUSES, Statuses
 from webapp.deps import templates
-from database import get_db
 
 router = APIRouter()
 

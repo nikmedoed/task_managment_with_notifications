@@ -4,10 +4,10 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from database import get_db
 from database.models import Organization, Object, TaskType
 from shared.app_config import app_config
 from webapp.deps import templates
-from database import get_db
 from webapp.schemas import *
 
 router = APIRouter()

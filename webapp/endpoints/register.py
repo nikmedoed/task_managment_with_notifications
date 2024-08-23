@@ -3,14 +3,14 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Form
 from fastapi.responses import RedirectResponse
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from database import get_db
 from database.models import User
 from webapp.deps import redis, templates
-from database import get_db
 from webapp.utils.RedisStore import REDIS_KEY_USER_REGISTER
-from sqlalchemy import func
 
 router = APIRouter()
 

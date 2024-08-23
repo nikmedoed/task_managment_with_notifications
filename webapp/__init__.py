@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import webapp.filters
 from database import async_dbsession, get_db
+from shared.app_config import app_config
 from shared.db import get_user_by_tg
 from webapp.deps import redis, BASE_DIR, templates, generate_static_template
 from webapp.endpoints import auth, register, tasks
@@ -33,6 +34,7 @@ secured_modules = {k: v for k, v in modules.items() if v.get('secured')}
 
 templates.env.globals['secured_modules'] = secured_modules
 templates.env.globals['SYSTEM_NAME'] = SYSTEM_NAME
+templates.env.globals['bot_link'] = app_config.telegram.bot_link
 for name, func in inspect.getmembers(webapp.filters, inspect.isfunction):
     templates.env.filters[name] = func
 
@@ -72,8 +74,8 @@ def create_app() -> FastAPI:
     def restricted(path) -> bool:
         if path == '/':
             return True
-        for module_name in secured_modules:
-            if path.startswith(f'/{module_name}'):
+        for mod_name in secured_modules:
+            if path.startswith(f'/{mod_name}'):
                 return True
         return False
 
