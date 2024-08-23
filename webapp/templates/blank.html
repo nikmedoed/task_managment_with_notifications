@@ -132,12 +132,14 @@
 
     <ul class="sidebar-nav" id="sidebar-nav">
         {% for route, data in secured_modules.items() %}
+        {% if not data.only_admin or request.state.user.admin %}
         <li class="nav-item">
             <a class="nav-link collapsed" href="/{{ route }}">
                 <i class="bi bi-{{ data.icon }}"></i>
                 <span>{{ data.name }}</span>
             </a>
         </li>
+        {% endif %}
         {% endfor %}
         <li class="nav-item">
             <a class="nav-link collapsed" href="{{ bot_link }}">
