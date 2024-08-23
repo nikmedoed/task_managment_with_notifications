@@ -64,7 +64,7 @@ def generate_static():
 def get_admin_user(request: Request):
     user = request.state.user
     if not user.admin:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="У вас нет допуска для этого действия")
     return user
 
 

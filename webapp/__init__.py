@@ -4,7 +4,7 @@ import os
 import urllib.parse
 
 import pytz
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,15 +24,13 @@ modules = {
     'auth': {'name': 'Авторизация'},
     'register': {'name': 'Регистрация'},
     'tasks': {'name': 'Мои задачи', 'icon': 'card-checklist', 'secured': True},
-    'tasks_archive': {'name': 'Все задачи', 'icon': 'archive', 'secured': True},
+    'tasks_archive': {'name': 'Все задачи', 'icon': 'archive', 'secured': True, "only_admin": True},
     'users': {'name': 'Пользователи', 'icon': 'people', 'secured': True},
     'documents': {'name': 'Документы', 'icon': 'file-earmark-text', 'secured': True},
     'references': {'name': 'Справочники', 'icon': 'journal-bookmark', 'secured': True}
 }
 
-secured_modules = {k: v for k, v in modules.items() if v.get('secured')}
-
-templates.env.globals['secured_modules'] = secured_modules
+templates.env.globals['secured_modules'] = {k: v for k, v in modules.items() if v.get('secured')}
 templates.env.globals['SYSTEM_NAME'] = SYSTEM_NAME
 templates.env.globals['bot_link'] = app_config.telegram.bot_link
 for name, func in inspect.getmembers(webapp.filters, inspect.isfunction):
@@ -71,20 +69,17 @@ def create_app() -> FastAPI:
               name="uploads")
     app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
-    def restricted(path) -> bool:
-        if path == '/':
-            return True
-        for mod_name in secured_modules:
-            if path.startswith(f'/{mod_name}'):
-                return True
-        return False
-
     @app.middleware('http')
     async def middleware(request: Request, call_next):
         user_id, device_id = None, None
-        if restricted(request.url.path):
-            url_safe_path = urllib.parse.quote(request.url.path, safe='')
+        path = request.url.path
+        route = 'tasks' if path == "/" else path.strip("/").split("/", 1)[0]
+
+        module_data = modules.get(route, {})
+        if module_data.get('secured'):
+            url_safe_path = urllib.parse.quote(path, safe='')
             user_id, device_id = await redis.check_token(request)
+
             if not user_id:
                 return await auth.login(request, next_path=url_safe_path)
 
@@ -97,6 +92,10 @@ def create_app() -> FastAPI:
                 return render_unactive(request)
             if not user.verificated:
                 return render_unverificated(request)
+
+            if module_data.get('only_admin') and not user.admin:
+                raise HTTPException(status_code=403, detail="У вас нет допуска для этого действия")
+
             request.state.user = user
 
         timezone = request.headers.get('X-Timezone', 'UTC')
@@ -106,8 +105,7 @@ def create_app() -> FastAPI:
             timezone = 'UTC'
         request.state.timezone = timezone
 
-        request.state.title = modules.get(request.url.path.strip("/").split("/", 1)[0], {}).get('name', "")
-
+        request.state.title = module_data.get('name', "")
         response = await call_next(request)
         if user_id and device_id:
             await redis.set_token(user_id, device_id, response)
