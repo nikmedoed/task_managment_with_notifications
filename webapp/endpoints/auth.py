@@ -8,10 +8,10 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from database import get_db
 from database.models import User
 from shared.app_config import app_config
 from webapp.deps import redis, templates
-from database import get_db
 from webapp.utils.RedisStore import COOKIE_AUTH
 
 router = APIRouter()

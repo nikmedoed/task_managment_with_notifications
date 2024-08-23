@@ -13,10 +13,6 @@ from telegram_bot.utils.keyboards import generate_status_keyboard
 
 
 def get_telegram_task_text(task: Task, event: str = "") -> str:
-
-    # task.get_user_roles()
-    # f"Ваша роль: {task.get_user_roles_text(user_to_notify.id)}
-
     task_info = (
         f"<b>№ п/п:</b> /{task.id}{' ❗️<b>важная</b>' if task.important else ''}\n"
         f"<b>Создано:</b> {task.time_created.strftime('%d.%m.%Y')}\n"

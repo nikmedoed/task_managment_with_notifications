@@ -4,8 +4,8 @@ from typing import List, TYPE_CHECKING
 from sqlalchemy import Column, Integer, Text, ForeignKey, JSON, DateTime, String, Enum
 from sqlalchemy.orm import relationship, Mapped
 
-from ._user_roles import UserRole
 from ._base import BaseModel
+from ._user_roles import UserRole
 
 if TYPE_CHECKING:
     from .tasks import Task

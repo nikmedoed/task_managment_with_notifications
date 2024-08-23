@@ -1,8 +1,9 @@
+import json
+
+import redis.asyncio as redis
+from fastapi import Request
 from joserfc import jwt
 from joserfc.errors import JoseError
-from fastapi import Request
-import redis.asyncio as redis
-import json
 
 REDIS_TTL = 259200  # 3 дня
 

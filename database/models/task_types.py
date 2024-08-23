@@ -1,5 +1,6 @@
-from ._base import BaseModel
 from sqlalchemy import Column, String, Boolean
+
+from ._base import BaseModel
 
 
 class TaskType(BaseModel):

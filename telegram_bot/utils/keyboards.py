@@ -53,4 +53,3 @@ def generate_status_keyboard(user: User, task: Task):
         )
 
     return keyboard.as_markup()
-

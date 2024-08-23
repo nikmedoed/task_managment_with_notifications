@@ -11,12 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import webapp.filters
 from database import async_dbsession, get_db
+from shared.app_config import app_config
 from shared.db import get_user_by_tg
 from webapp.deps import redis, BASE_DIR, templates, generate_static_template
 from webapp.endpoints import auth, register, tasks
 from webapp.endpoints import tasks
 from webapp.errors import error_handlers, render_unactive, render_unverificated
-from shared.app_config import app_config
+
 SYSTEM_NAME = "Прайм контроль"
 
 modules = {
