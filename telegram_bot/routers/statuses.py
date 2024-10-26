@@ -134,8 +134,8 @@ async def run_status_change(task: Task, user: User, new_status: Statuses, db: As
         if new_status in COMPLETED_STATUSES:
             await send_autodelete_message(
                 f"{info}"
-                f"<a href='{app_config.domain}/tasks/{task.id}'>Задача</a> в "
-                f"<a href='{app_config.domain}/tasks_archive'>архиве</a>.",
+                f"<a href='{app_config.domain}/tasks/{task.id}'>Задача</a> в архиве",
+                # f"<a href='{app_config.domain}/tasks_archive'>архиве</a>.",
                 chat_id=user.telegram_id,
                 message=message)
 
