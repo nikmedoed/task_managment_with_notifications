@@ -105,8 +105,6 @@ async def delete_notifications(notifications, db: AsyncSession):
                 await db.commit()
             else:
                 logging.error(f"Failed to delete message {notification.telegram_message_id}: {err}")
-                await add_error(notification.task_id, f"Ошибка удаления устаревшего уведомления:\n{err}",
-                                notification.user_id, db)
 
 
 async def send_task_message(text: str, task: Task, user: User, user_message: Message = None, db: AsyncSession = None,
