@@ -10,7 +10,14 @@ app = create_app()
 
 
 async def run_fastapi():
-    config = uvicorn.Config(app, host=app_config.host, port=app_config.port, log_level=app_config.log_level)
+    config = uvicorn.Config(
+        app, host=app_config.host,
+        port=app_config.port,
+        log_level=app_config.log_level,
+        workers=1,
+        limit_concurrency=50,
+        limit_max_requests=1000
+    )
     server = uvicorn.Server(config)
     await server.serve()
 

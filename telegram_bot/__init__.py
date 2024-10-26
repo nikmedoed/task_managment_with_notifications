@@ -1,3 +1,4 @@
+import asyncio
 import importlib
 import logging
 import pkgutil
@@ -52,3 +53,7 @@ async def start_bot():
     cron_job = aiocron.crontab('0 9 * * *', func=notify_everyday_tasks_deadlines, start=True)
 
     await dp.start_polling(bot, skip_updates=False)
+
+
+if __name__ == "__main__":
+    asyncio.run(start_bot())
